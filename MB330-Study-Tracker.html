@@ -1,0 +1,1953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MB-330 Study Tracker — Active Recall & Spaced Repetition</title>
+<style>
+  :root {
+    --blue: #0078d4;
+    --blue-dark: #005a9e;
+    --blue-light: #dce9f8;
+    --green: #107c10;
+    --green-light: #dff6dd;
+    --orange: #d83b01;
+    --orange-light: #fdf5f0;
+    --yellow: #fce100;
+    --yellow-light: #fffbe6;
+    --gray: #605e5c;
+    --gray-light: #f3f2f1;
+    --gray-border: #d2d0ce;
+    --white: #ffffff;
+    --radius: 8px;
+    --shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f4f9; color: #201f1e; font-size: 14px; }
+
+  /* HEADER */
+  .header { background: var(--blue); color: white; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 20px; font-weight: 600; }
+  .header .exam-badge { background: rgba(255,255,255,0.2); border-radius: 20px; padding: 4px 14px; font-size: 12px; font-weight: 600; }
+  .header .dates { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+
+  /* NAV TABS */
+  .nav { background: white; border-bottom: 1px solid var(--gray-border); display: flex; gap: 0; padding: 0 24px; }
+  .nav button { background: none; border: none; border-bottom: 3px solid transparent; padding: 12px 18px; font-size: 14px; cursor: pointer; color: var(--gray); font-weight: 500; transition: all 0.2s; }
+  .nav button:hover { color: var(--blue); }
+  .nav button.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 600; }
+
+  /* MAIN CONTENT */
+  .main { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+
+  /* CARDS */
+  .card { background: white; border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin-bottom: 16px; }
+  .card h2 { font-size: 16px; font-weight: 600; margin-bottom: 14px; color: #201f1e; }
+  .card h3 { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: #201f1e; }
+
+  /* STATS ROW */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+  .stat-card { background: white; border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 20px; text-align: center; }
+  .stat-card .num { font-size: 32px; font-weight: 700; color: var(--blue); }
+  .stat-card .label { font-size: 12px; color: var(--gray); margin-top: 4px; }
+  .stat-card.green .num { color: var(--green); }
+  .stat-card.orange .num { color: var(--orange); }
+
+  /* PROGRESS BARS */
+  .progress-wrap { margin-bottom: 12px; }
+  .progress-label { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 13px; }
+  .progress-label a { color: var(--blue); text-decoration: none; font-size: 11px; }
+  .progress-label a:hover { text-decoration: underline; }
+  .progress-bar { height: 10px; background: var(--gray-light); border-radius: 5px; overflow: hidden; }
+  .progress-bar .fill { height: 100%; border-radius: 5px; transition: width 0.4s; }
+  .fill-blue { background: var(--blue); }
+  .fill-green { background: var(--green); }
+  .fill-orange { background: #ca5010; }
+
+  /* DOMAIN SECTIONS */
+  .domain { border: 1px solid var(--gray-border); border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; }
+  .domain-header { display: flex; align-items: center; padding: 12px 16px; cursor: pointer; background: var(--gray-light); gap: 12px; user-select: none; }
+  .domain-header:hover { background: #e8e6e4; }
+  .domain-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px; white-space: nowrap; }
+  .badge-blue { background: var(--blue-light); color: var(--blue-dark); }
+  .badge-green { background: var(--green-light); color: var(--green); }
+  .badge-orange { background: var(--orange-light); color: var(--orange); }
+  .badge-yellow { background: var(--yellow-light); color: #835b00; }
+  .domain-title { flex: 1; font-weight: 600; font-size: 14px; }
+  .domain-pct { font-size: 12px; color: var(--gray); }
+  .domain-chevron { font-size: 10px; color: var(--gray); transition: transform 0.2s; }
+  .domain.open .domain-chevron { transform: rotate(90deg); }
+  .domain-body { display: none; padding: 0 16px 14px; }
+  .domain.open .domain-body { display: block; }
+
+  /* TOPIC LIST */
+  .topic-group { margin-top: 12px; }
+  .topic-group-title { font-size: 12px; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .topic-item { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; border-bottom: 1px solid #f3f2f1; }
+  .topic-item:last-child { border-bottom: none; }
+  .topic-check { display: flex; align-items: center; gap: 6px; flex: 1; }
+  .topic-check input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--blue); flex-shrink: 0; margin-top: 2px; }
+  .topic-check label { cursor: pointer; font-size: 13px; line-height: 1.4; }
+  .topic-check input:checked + label { text-decoration: line-through; color: var(--gray); }
+  .recall-btn { background: none; border: 1px solid var(--blue); color: var(--blue); border-radius: 4px; padding: 2px 8px; font-size: 11px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+  .recall-btn:hover { background: var(--blue-light); }
+  .recall-status { font-size: 11px; padding: 2px 8px; border-radius: 12px; white-space: nowrap; flex-shrink: 0; }
+  .rs-new { background: #f0f0f0; color: #666; }
+  .rs-again { background: #fce8e6; color: #c0392b; }
+  .rs-hard { background: #fdf0d0; color: #856400; }
+  .rs-good { background: var(--green-light); color: var(--green); }
+  .rs-easy { background: #e3f2fd; color: #0d47a1; }
+
+  /* FLASHCARD */
+  .flashcard-area { max-width: 680px; margin: 0 auto; }
+  .flashcard { background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.12); padding: 32px; min-height: 220px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; transition: transform 0.2s; position: relative; }
+  .flashcard:hover { transform: translateY(-2px); }
+  .fc-domain { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--blue); margin-bottom: 10px; }
+  .fc-question { font-size: 18px; font-weight: 600; line-height: 1.5; }
+  .fc-answer { display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--gray-border); font-size: 14px; color: #323130; line-height: 1.6; text-align: left; }
+  .fc-hint { font-size: 12px; color: var(--gray); margin-top: 12px; }
+  .flashcard.revealed .fc-answer { display: block; }
+  .flashcard.revealed .fc-hint { display: none; }
+  .rating-row { display: flex; gap: 8px; justify-content: center; margin-top: 16px; }
+  .rating-btn { border: none; border-radius: 6px; padding: 10px 20px; font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+  .btn-again { background: #fce8e6; color: #c0392b; }
+  .btn-hard { background: #fdf0d0; color: #856400; }
+  .btn-good { background: var(--green-light); color: var(--green); }
+  .btn-easy { background: #e3f2fd; color: #0d47a1; }
+  .rating-btn:hover { opacity: 0.8; }
+  .fc-counter { font-size: 12px; color: var(--gray); text-align: center; margin-bottom: 12px; }
+  .fc-progress { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; }
+  .fc-progress span { font-size: 13px; font-weight: 600; }
+  .fc-progress .fc-again { color: #c0392b; }
+  .fc-progress .fc-hard { color: #856400; }
+  .fc-progress .fc-good { color: var(--green); }
+  .fc-progress .fc-easy { color: #0d47a1; }
+  .fc-nav { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
+  .fc-nav button { background: var(--gray-light); border: 1px solid var(--gray-border); border-radius: 6px; padding: 8px 16px; cursor: pointer; font-size: 13px; }
+  .fc-nav button:hover { background: var(--blue-light); }
+  .fc-filter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .fc-filter button { background: var(--gray-light); border: 1px solid var(--gray-border); border-radius: 20px; padding: 5px 14px; cursor: pointer; font-size: 12px; }
+  .fc-filter button.active { background: var(--blue); color: white; border-color: var(--blue); }
+
+  /* SCHEDULE */
+  .schedule-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .sch-day { padding: 6px 4px; text-align: center; border-radius: 4px; font-size: 11px; min-height: 52px; cursor: pointer; border: 1px solid transparent; }
+  .sch-day:hover { border-color: var(--blue); }
+  .sch-day.header-day { background: none; font-weight: 700; color: var(--gray); min-height: auto; cursor: default; }
+  .sch-day.header-day:hover { border-color: transparent; }
+  .sch-day .day-num { font-weight: 700; font-size: 12px; }
+  .sch-day .day-topic { font-size: 10px; margin-top: 2px; line-height: 1.2; }
+  .sch-day.today { background: var(--blue); color: white; }
+  .sch-day.done { background: var(--green-light); border-color: var(--green); }
+  .sch-day.scheduled { background: var(--blue-light); }
+  .sch-day.review { background: var(--yellow-light); border-color: #d4a600; }
+  .sch-day.empty { background: none; border-color: transparent; cursor: default; }
+  .sch-day.past { background: #f8f8f8; color: #aaa; }
+  .sch-legend { display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+
+  /* LINKS */
+  .ms-links { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .ms-link { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1px solid var(--gray-border); border-radius: var(--radius); text-decoration: none; color: inherit; transition: border-color 0.2s; }
+  .ms-link:hover { border-color: var(--blue); background: var(--blue-light); }
+  .ms-link .link-icon { font-size: 20px; flex-shrink: 0; }
+  .ms-link .link-title { font-weight: 600; font-size: 13px; }
+  .ms-link .link-desc { font-size: 12px; color: var(--gray); margin-top: 2px; }
+
+  /* NOTES */
+  .notes-area textarea { width: 100%; border: 1px solid var(--gray-border); border-radius: var(--radius); padding: 10px; font-size: 13px; font-family: inherit; resize: vertical; min-height: 120px; }
+  .notes-area textarea:focus { outline: none; border-color: var(--blue); }
+  .notes-save-btn { margin-top: 8px; background: var(--blue); color: white; border: none; border-radius: 6px; padding: 8px 18px; cursor: pointer; font-size: 13px; font-weight: 600; }
+  .notes-save-btn:hover { background: var(--blue-dark); }
+
+  /* TABS CONTENT */
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ALERTS */
+  .alert { border-radius: var(--radius); padding: 12px 16px; margin-bottom: 14px; font-size: 13px; display: flex; gap: 10px; align-items: flex-start; }
+  .alert-info { background: var(--blue-light); border-left: 4px solid var(--blue); }
+  .alert-success { background: var(--green-light); border-left: 4px solid var(--green); }
+  .alert-warn { background: var(--yellow-light); border-left: 4px solid #d4a600; }
+
+  /* LEARN TAB */
+  .lesson-nav { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+  .lesson-nav select { border: 1px solid var(--gray-border); border-radius: 6px; padding: 7px 12px; font-size: 13px; font-family: inherit; background: white; cursor: pointer; }
+  .lesson-nav select:focus { outline: none; border-color: var(--blue); }
+  .lesson-nav button { background: var(--gray-light); border: 1px solid var(--gray-border); border-radius: 6px; padding: 7px 14px; font-size: 13px; cursor: pointer; }
+  .lesson-nav button:hover { background: var(--blue-light); }
+  .lesson-nav button.primary { background: var(--blue); color: white; border-color: var(--blue); }
+  .lesson-nav button.primary:hover { background: var(--blue-dark); }
+  .lesson-body h3 { font-size: 15px; color: var(--blue-dark); margin: 18px 0 8px; border-bottom: 2px solid var(--blue-light); padding-bottom: 4px; }
+  .lesson-body p { line-height: 1.7; margin-bottom: 10px; font-size: 14px; }
+  .lesson-body ul { margin: 0 0 12px 20px; }
+  .lesson-body ul li { margin-bottom: 6px; line-height: 1.6; font-size: 14px; }
+  .lesson-body strong { color: #1a1a1a; }
+  .concept-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+  .concept-box { background: var(--gray-light); border-radius: var(--radius); padding: 12px 14px; border-left: 3px solid var(--blue); }
+  .concept-box .cb-term { font-weight: 700; font-size: 13px; color: var(--blue-dark); margin-bottom: 4px; }
+  .concept-box .cb-def { font-size: 12px; line-height: 1.5; color: #323130; }
+  .exam-tip-box { background: #fff8e1; border: 1px solid #fdd835; border-radius: var(--radius); padding: 12px 14px; margin: 14px 0; }
+  .exam-tip-box .et-label { font-weight: 700; font-size: 12px; color: #856400; margin-bottom: 4px; }
+  .selfcheck { background: var(--blue-light); border-radius: var(--radius); padding: 14px; margin-top: 14px; }
+  .selfcheck .sc-label { font-weight: 700; font-size: 13px; color: var(--blue-dark); margin-bottom: 8px; }
+  .selfcheck ol { margin-left: 18px; }
+  .selfcheck ol li { font-size: 13px; margin-bottom: 5px; line-height: 1.5; }
+  .lesson-mslink { display: inline-flex; align-items: center; gap: 6px; color: var(--blue); text-decoration: none; font-size: 13px; font-weight: 600; margin-top: 14px; border: 1px solid var(--blue); border-radius: 6px; padding: 8px 14px; }
+  .lesson-mslink:hover { background: var(--blue-light); }
+  .day-pill { display: inline-block; background: var(--blue); color: white; font-size: 11px; font-weight: 700; border-radius: 12px; padding: 2px 10px; margin-right: 8px; vertical-align: middle; }
+  @media (max-width: 700px) { .concept-grid { grid-template-columns: 1fr; } }
+
+  /* RESPONSIVE */
+  @media (max-width: 700px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .ms-links { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="exam-badge">MB-330 · Dynamics 365 Supply Chain Management</div>
+    <h1 style="margin-top:6px;">Study Tracker — Active Recall &amp; Spaced Repetition</h1>
+    <div class="dates">Study period: March 24, 2026 → May 25, 2026 &nbsp;·&nbsp; 62 days</div>
+  </div>
+  <div style="text-align:right; font-size:13px; opacity:0.9;">
+    <div id="countdown-days" style="font-size:36px; font-weight:700; line-height:1;"></div>
+    <div>days remaining</div>
+  </div>
+</div>
+
+<nav class="nav">
+  <button class="active" onclick="showTab('dashboard')">Dashboard</button>
+  <button onclick="showTab('topics')">Topics &amp; Checklist</button>
+  <button onclick="showTab('flashcards')">Flashcards</button>
+  <button onclick="showTab('schedule')">Schedule</button>
+  <button onclick="showTab('learn')">Learn</button>
+  <button onclick="showTab('resources')">Resources</button>
+</nav>
+
+<!-- ====================== DASHBOARD ====================== -->
+<div class="main">
+<div id="tab-dashboard" class="tab-content active">
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="num" id="stat-completed">0</div>
+      <div class="label">Topics Completed</div>
+    </div>
+    <div class="stat-card">
+      <div class="num" id="stat-total">0</div>
+      <div class="label">Total Topics</div>
+    </div>
+    <div class="stat-card green">
+      <div class="num" id="stat-pct">0%</div>
+      <div class="label">Overall Progress</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="num" id="stat-due">0</div>
+      <div class="label">Cards Due Today</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Progress by Domain</h2>
+    <div id="domain-progress-bars"></div>
+  </div>
+
+  <div class="card">
+    <h2>Today's Study Plan</h2>
+    <div id="todays-plan"></div>
+  </div>
+
+  <div class="card">
+    <h2>Spaced Repetition — How It Works</h2>
+    <div class="alert alert-info">
+      <span>ℹ️</span>
+      <span>Rate each flashcard after revealing the answer: <strong>Again</strong> (didn't know), <strong>Hard</strong> (recalled with effort), <strong>Good</strong> (recalled correctly), <strong>Easy</strong> (instant recall). Cards are scheduled for review based on your ratings — the better you know something, the longer until you see it again.</span>
+    </div>
+    <div style="display:grid; grid-template-columns: repeat(4,1fr); gap:10px; text-align:center; font-size:12px;">
+      <div style="padding:10px; background:#fce8e6; border-radius:8px;"><div style="font-size:20px;">🔴</div><strong>Again</strong><div style="color:#666; margin-top:2px;">Review again today</div></div>
+      <div style="padding:10px; background:#fdf0d0; border-radius:8px;"><div style="font-size:20px;">🟡</div><strong>Hard</strong><div style="color:#666; margin-top:2px;">+1 day</div></div>
+      <div style="padding:10px; background:#dff6dd; border-radius:8px;"><div style="font-size:20px;">🟢</div><strong>Good</strong><div style="color:#666; margin-top:2px;">+3 days → grows</div></div>
+      <div style="padding:10px; background:#e3f2fd; border-radius:8px;"><div style="font-size:20px;">🔵</div><strong>Easy</strong><div style="color:#666; margin-top:2px;">+7 days → grows faster</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ====================== TOPICS ====================== -->
+<div id="tab-topics" class="tab-content">
+  <div class="alert alert-info">
+    <span>📋</span>
+    <span>Check off topics as you study them. Click <strong>Quiz Me</strong> to jump to a flashcard for that topic. Your progress is saved automatically in your browser.</span>
+  </div>
+  <div id="domain-list"></div>
+</div>
+
+<!-- ====================== FLASHCARDS ====================== -->
+<div id="tab-flashcards" class="tab-content">
+  <div class="flashcard-area">
+    <div class="card">
+      <h2>Active Recall Flashcards</h2>
+      <div class="fc-filter" id="fc-filter">
+        <button class="active" data-filter="all" onclick="setFcFilter('all',this)">All Cards</button>
+        <button data-filter="due" onclick="setFcFilter('due',this)">Due Today</button>
+        <button data-filter="again" onclick="setFcFilter('again',this)">Again</button>
+        <button data-filter="D1" onclick="setFcFilter('D1',this)">Prod. Info Mgmt</button>
+        <button data-filter="D2" onclick="setFcFilter('D2',this)">Inventory &amp; Assets</button>
+        <button data-filter="D3" onclick="setFcFilter('D3',this)">Supply Chain</button>
+        <button data-filter="D4" onclick="setFcFilter('D4',this)">Warehouse &amp; Transport</button>
+        <button data-filter="D5" onclick="setFcFilter('D5',this)">Master Planning</button>
+      </div>
+      <div class="fc-counter" id="fc-counter">Card <span id="fc-idx">1</span> of <span id="fc-total">0</span></div>
+      <div class="fc-progress">
+        <span class="fc-again">🔴 <span id="fp-again">0</span></span>
+        <span class="fc-hard">🟡 <span id="fp-hard">0</span></span>
+        <span class="fc-good">🟢 <span id="fp-good">0</span></span>
+        <span class="fc-easy">🔵 <span id="fp-easy">0</span></span>
+      </div>
+      <div class="flashcard" id="flashcard" onclick="revealCard()">
+        <div class="fc-domain" id="fc-domain"></div>
+        <div class="fc-question" id="fc-question">Loading...</div>
+        <div class="fc-answer" id="fc-answer"></div>
+        <div class="fc-hint">👆 Click to reveal answer</div>
+      </div>
+      <div class="rating-row" id="rating-row" style="display:none;">
+        <button class="rating-btn btn-again" onclick="rateCard('again')">🔴 Again</button>
+        <button class="rating-btn btn-hard" onclick="rateCard('hard')">🟡 Hard</button>
+        <button class="rating-btn btn-good" onclick="rateCard('good')">🟢 Good</button>
+        <button class="rating-btn btn-easy" onclick="rateCard('easy')">🔵 Easy</button>
+      </div>
+      <div class="fc-nav">
+        <button onclick="prevCard()">← Previous</button>
+        <button onclick="shuffleCards()">🔀 Shuffle</button>
+        <button onclick="nextCard()">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================== SCHEDULE ====================== -->
+<div id="tab-schedule" class="tab-content">
+  <div class="card">
+    <h2>Study Schedule — March 24 to May 25, 2026</h2>
+    <div class="alert alert-info" style="margin-bottom:14px;">
+      <span>📅</span>
+      <span>Schedule is based on exam weightings: heavier domains get more study time. <strong>Sunday = review day</strong>. Final 2 weeks = intensive revision &amp; mock exams.</span>
+    </div>
+    <div id="schedule-grid"></div>
+    <div class="sch-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--blue);"></div> Today</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--green-light); border:1px solid var(--green);"></div> Completed</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--blue-light);"></div> Product Info Mgmt</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#e8f5e9;"></div> Inventory &amp; Assets</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#fff3e0;"></div> Supply Chain</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f3e5f5;"></div> Warehouse &amp; Transport</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#e0f2f1;"></div> Master Planning</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--yellow-light); border:1px solid #d4a600;"></div> Review Day</div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================== LEARN ====================== -->
+<div id="tab-learn" class="tab-content">
+  <div class="lesson-nav">
+    <select id="lesson-select" onchange="loadLesson(this.value)"></select>
+    <button onclick="prevLesson()">← Prev</button>
+    <button onclick="nextLesson()">Next →</button>
+    <button class="primary" onclick="goToTodayLesson()">Today's Lesson</button>
+    <button onclick="showTab('flashcards'); setFcFilterFromLesson()">Practice Flashcards →</button>
+  </div>
+  <div id="lesson-container"></div>
+</div>
+
+<!-- ====================== RESOURCES ====================== -->
+<div id="tab-resources" class="tab-content">
+  <div class="card">
+    <h2>Microsoft Learn — Official Study Resources</h2>
+    <div class="ms-links">
+      <a class="ms-link" href="https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/mb-330" target="_blank">
+        <div class="link-icon">📋</div>
+        <div><div class="link-title">MB-330 Official Study Guide</div><div class="link-desc">Full exam skills breakdown and official study guide from Microsoft</div></div>
+      </a>
+      <a class="ms-link" href="https://learn.microsoft.com/en-us/training/paths/configure-manage-products-inventory-dyn365-supply-chain-mgmt/" target="_blank">
+        <div class="link-icon">📦</div>
+        <div><div class="link-title">Products &amp; Inventory (D1+D2)</div><div class="link-desc">Learning path: Configure and manage products and inventory (25–30%)</div></div>
+      </a>
+      <a class="ms-link" href="https://learn.microsoft.com/en-us/training/paths/configure-manage-procurement-vendors-dyn365-supply-chain-mgmt/" target="_blank">
+        <div class="link-icon">🔗</div>
+        <div><div class="link-title">Procurement &amp; Vendors (D3)</div><div class="link-desc">Learning path: Configure and manage procurement and vendors (15–20%)</div></div>
+      </a>
+      <a class="ms-link" href="https://learn.microsoft.com/en-us/training/paths/configure-work-warehouse-management-dyn365-supply-chain-mgmt/" target="_blank">
+        <div class="link-icon">🏬</div>
+        <div><div class="link-title">Warehouse Management (D4)</div><div class="link-desc">Learning path: Configure and work with warehouse management (20–25%)</div></div>
+      </a>
+      <a class="ms-link" href="https://learn.microsoft.com/en-us/training/paths/configure-work-transportation-mgmt-dyn365-supply-chain-mgmt/" target="_blank">
+        <div class="link-icon">🚛</div>
+        <div><div class="link-title">Transportation Management (D4)</div><div class="link-desc">Learning path: Configure and work with transportation management</div></div>
+      </a>
+      <a class="ms-link" href="https://learn.microsoft.com/en-us/training/paths/master-planning-supply-chain-management/" target="_blank">
+        <div class="link-icon">📊</div>
+        <div><div class="link-title">Master Planning (D5)</div><div class="link-desc">Learning path: Master planning in D365 Supply Chain (10–15%)</div></div>
+      </a>
+      <a class="ms-link" href="https://learn.microsoft.com/en-us/training/paths/explore-microsoft-dynamics-365-supply-chain-management/" target="_blank">
+        <div class="link-icon">🔍</div>
+        <div><div class="link-title">Intro to D365 SCM</div><div class="link-desc">Start here if new — overview of the full product</div></div>
+      </a>
+      <a class="ms-link" href="https://learn.microsoft.com/en-us/credentials/certifications/d365-functional-consultant-supply-chain-management/" target="_blank">
+        <div class="link-icon">🏆</div>
+        <div><div class="link-title">MB-330 Certification Page</div><div class="link-desc">Official certification landing page, prerequisites, and exam registration</div></div>
+      </a>
+      <a class="ms-link" href="https://learn.microsoft.com/en-us/dynamics365/supply-chain/" target="_blank">
+        <div class="link-icon">📖</div>
+        <div><div class="link-title">D365 Supply Chain Docs</div><div class="link-desc">Full product documentation — great for deep-dive reading</div></div>
+      </a>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Study Notes</h2>
+    <div class="notes-area">
+      <textarea id="study-notes" placeholder="Write your notes, key concepts, things to revisit..."></textarea>
+      <button class="notes-save-btn" onclick="saveNotes()">Save Notes</button>
+      <span id="notes-saved" style="margin-left:10px; font-size:12px; color:var(--green); display:none;">✓ Saved</span>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+// ============================================================
+//  DATA
+// ============================================================
+const DOMAINS = [
+  {
+    id: 'D1', title: 'Implement Product Information Management', pct: '25–30%',
+    color: '#dce9f8', badgeClass: 'badge-blue',
+    groups: [
+      {
+        name: 'Create and Manage Products',
+        topics: [
+          'Create and release products and product variants',
+          'Create and apply product templates',
+          'Create bills of materials (BOMs) and BOM versions',
+          'Create and configure category hierarchies',
+          'Create and manage product states during the lifecycle',
+          'Create and manage product attributes',
+        ]
+      },
+      {
+        name: 'Configure Prerequisites for Products',
+        topics: [
+          'Configure inventory dimensions (storage, tracking, product dimension groups)',
+          'Configure item model groups',
+          'Configure reservation hierarchies',
+          'Configure unit sequence groups',
+        ]
+      },
+      {
+        name: 'Configure Additional Product Details',
+        topics: [
+          'Create and assign bar codes and GTIN codes',
+          'Configure product unit conversions',
+          'Configure default order settings',
+          'Configure product filter codes for warehouse operations',
+        ]
+      },
+      {
+        name: 'Manage Inventory Pricing and Costing',
+        topics: [
+          'Configure and maintain costing versions (standard and planned costs)',
+          'Configure price groups',
+          'Configure items with standard costs',
+          'Configure default item prices, purchase/sales prices, and discounts in trade agreements',
+        ]
+      }
+    ]
+  },
+  {
+    id: 'D2', title: 'Implement Inventory and Asset Management', pct: '20–25%',
+    color: '#e8f5e9', badgeClass: 'badge-green',
+    groups: [
+      {
+        name: 'Manage and Process Inventory Activities',
+        topics: [
+          'Create and process journals (BOMs, item arrival, output order, transfer, movement, adjustment, counting)',
+          'Create and process transfer orders',
+          'Configure and manage inventory closing and adjustment process',
+          'Apply and remove inventory blocking manually',
+          'Create batch disposition codes',
+          'Configure and run inventory reports including ABC classification',
+        ]
+      },
+      {
+        name: 'Manage Quality',
+        topics: [
+          'Configure and process nonconformances',
+          'Configure quality associations',
+          'Configure components for the quality control process',
+          'Process quality orders',
+          'Process quarantine orders',
+        ]
+      },
+      {
+        name: 'Configure Asset Management',
+        topics: [
+          'Create and manage work orders',
+          'Create and configure assets and asset types',
+          'View and manage capacity for work orders',
+          'Configure work order settings',
+          'Schedule preventive and reactive maintenance',
+          'Manage and configure asset loans',
+          'Create and configure asset lifecycle models and states',
+        ]
+      },
+      {
+        name: 'Implement Asset Management',
+        topics: [
+          'Configure maintenance plans',
+          'Configure functional locations',
+          'Manage maintenance requests',
+          'Manage work order consumption',
+          'Manage work order scheduling',
+        ]
+      }
+    ]
+  },
+  {
+    id: 'D3', title: 'Implement and Manage Supply Chain Processes', pct: '15–20%',
+    color: '#fff3e0', badgeClass: 'badge-orange',
+    groups: [
+      {
+        name: 'Implement Procurement and Sourcing',
+        topics: [
+          'Create and maintain vendors',
+          'Create and manage purchase requisitions, RFQs, and purchase orders',
+          'Create purchase agreements and vendor rebates',
+          'Configure and process consignment inventory',
+          'Manage over/under deliveries and delivery schedules',
+          'Configure procurement categories, charge codes, and purchasing policies',
+          'Configure vendor collaboration features',
+          'Create and process vendor returns',
+          'Manage registration and product receipt',
+          'Configure procurement workflows',
+        ]
+      },
+      {
+        name: 'Implement Landed Cost',
+        topics: [
+          'Configure landed cost parameters and voyage statuses',
+          'Create and process voyage with purchase/transfer orders',
+          'Configure cost estimations, tracking control center, over/under tolerance, journey templates',
+          'Configure cost type codes and auto-costs',
+          'Track inbound voyages and shipping container journeys',
+        ]
+      },
+      {
+        name: 'Implement Common Sales and Marketing Features',
+        topics: [
+          'Create and maintain customers',
+          'Configure sales agreements',
+          'Configure and process sales quotations, orders, reservations, and returns',
+          'Configure sales groups and commissions',
+          'Configure and process intercompany orders',
+          'Configure and process customer rebates',
+          'Configure and manage delivery schedule, ATP, and CTP',
+          'Configure and use product bundles',
+        ]
+      }
+    ]
+  },
+  {
+    id: 'D4', title: 'Implement Warehouse Management and Transportation Management', pct: '20–25%',
+    color: '#f3e5f5', badgeClass: 'badge-blue',
+    groups: [
+      {
+        name: 'Configure Warehouse Management',
+        topics: [
+          'Create sites, warehouses, locations, location formats, profiles, types, and zones',
+          'Configure work policies and work breaks',
+          'Implement location directives',
+          'Configure wave, load, and work templates',
+          'Create and print labels (product, wave, GS1, license plate)',
+          'Configure packing dimensions',
+          'Configure inbound receiving process',
+          'Configure outbound shipment process',
+          'Configure and update inventory status',
+        ]
+      },
+      {
+        name: 'Perform Warehouse Management Processes',
+        topics: [
+          'Configure and process replenishment',
+          'Manage inbound and outbound load planning workbench',
+          'Configure and process inventory movements via warehouse work',
+          'Create cycle counting work and perform cycle counting',
+          'Process inbound/outbound orders using Warehouse Management mobile app',
+          'Configure containerization and packaging options',
+          'Configure and process cross docking',
+        ]
+      },
+      {
+        name: 'Implement Transportation Management',
+        topics: [
+          'Configure shipping carriers and carrier groups',
+          'Plan and execute loads and shipments',
+          'Configure and generate freight bills and invoices',
+          'Configure route plans and guides',
+          'Manage route and rate engines',
+          'Configure and use dock appointment scheduling',
+          'Reconcile freight (manual and automatic processes)',
+        ]
+      },
+      {
+        name: 'Implement Warehouse Management Mobile App',
+        topics: [
+          'Configure mobile device menus, menu items, and display settings',
+          'Configure detours for mobile device steps',
+          'Install and configure the Warehouse Management mobile app',
+          'Create and manage warehouse workers for the mobile app',
+        ]
+      }
+    ]
+  },
+  {
+    id: 'D5', title: 'Implement Master Planning', pct: '10–15%',
+    color: '#e0f2f1', badgeClass: 'badge-green',
+    groups: [
+      {
+        name: 'Configure Master Planning',
+        topics: [
+          'Set up coverage groups and item coverage',
+          'Configure and maintain master planning parameters and master plans',
+          'Define positive and negative days',
+          'Define action messages, delay, and time fences',
+          'Configure period templates',
+        ]
+      },
+      {
+        name: 'Manage Master Plans',
+        topics: [
+          'Run master planning and analyze the results',
+          'Evaluate and process planned purchase and transfer orders',
+          'Set up and use the Supply Schedule form',
+          'Configure safety margins',
+          'Configure and process safety stock journals',
+        ]
+      }
+    ]
+  }
+];
+
+// Flashcard questions with active recall focus
+const FLASHCARDS = [
+  // D1 — Product Information Management
+  {id:'fc001',domain:'D1',q:'What is the difference between a product and a product variant in D365 Supply Chain?',a:'A <strong>product</strong> is the base item definition. A <strong>product variant</strong> is a specific combination of product dimensions (color, size, style, configuration) derived from a product master. You release products to legal entities, and variants are auto-created from the dimension combinations.'},
+  {id:'fc002',domain:'D1',q:'What are the 4 types of inventory dimensions in D365 SCM?',a:'1. <strong>Storage dimensions</strong>: Site, Warehouse, Location, Inventory status<br>2. <strong>Tracking dimensions</strong>: Batch number, Serial number<br>3. <strong>Product dimensions</strong>: Color, Size, Style, Configuration, Version<br>4. These are grouped into <strong>dimension groups</strong> assigned to items.'},
+  {id:'fc003',domain:'D1',q:'What is a Bill of Materials (BOM) and when do you create BOM versions?',a:'A <strong>BOM</strong> defines the components and quantities needed to produce a finished product. <strong>BOM versions</strong> allow multiple active versions with different date ranges or site/warehouse scopes — you can have a version for each manufacturing site or time period.'},
+  {id:'fc004',domain:'D1',q:'What is the purpose of an Item Model Group in D365 SCM?',a:'An <strong>Item Model Group</strong> controls: inventory costing method (FIFO, LIFO, Weighted avg, Standard cost), whether the item is stocked, whether to post physical/financial inventory, and quality management settings. It is assigned to every product.'},
+  {id:'fc005',domain:'D1',q:'What are costing versions and what are the two types?',a:'<strong>Costing versions</strong> store cost data for items. Two types:<br>1. <strong>Standard cost</strong>: Used with standard costing; costs are predefined and variance is tracked<br>2. <strong>Planned cost</strong>: Used for simulations and "what-if" analysis without affecting actual inventory valuation.'},
+  {id:'fc006',domain:'D1',q:'What is a Trade Agreement in D365 and what can it define?',a:'A <strong>Trade Agreement</strong> stores pricing and discount policies. It can define: purchase prices, sales prices, line discounts, multiline discounts, total discounts. Agreements can be specific to customers, vendors, item groups, currency, and date ranges.'},
+  {id:'fc007',domain:'D1',q:'What is a Reservation Hierarchy and why is it important for WMS?',a:'A <strong>Reservation Hierarchy</strong> defines which inventory dimensions must be specified before/after a reservation. For WMS-enabled warehouses, dimensions like Location and License plate are typically reserved "below the line" — at warehouse picking time, not at order entry.'},
+  {id:'fc008',domain:'D1',q:'What is the purpose of Product Filter Codes in warehouse operations?',a:'<strong>Product Filter Codes</strong> are user-defined codes assigned to products and location directives to control <em>which items can be stored in which locations</em>. They enable hazardous material segregation, temperature zone control, and other storage rules.'},
+  // D2 — Inventory and Asset Management
+  {id:'fc009',domain:'D2',q:'Name 5 types of inventory journals in D365 SCM and their purpose.',a:'1. <strong>Movement</strong>: Adjust qty up/down with an offset account<br>2. <strong>Inventory adjustment</strong>: Adjust qty, posts to P&L<br>3. <strong>Transfer</strong>: Move items between warehouses without financial posting<br>4. <strong>Counting</strong>: Physical count reconciliation<br>5. <strong>Item arrival</strong>: Register item receipt<br>6. <strong>BOM</strong>: Report components consumption manually'},
+  {id:'fc010',domain:'D2',q:'What is Inventory Blocking and how can it be applied?',a:'<strong>Inventory Blocking</strong> prevents selected inventory from being picked, reserved, or used in transactions. It can be applied: <strong>manually</strong> (via Inventory blocking form), <strong>automatically</strong> via Quality Orders or Quarantine Orders, or via <strong>Batch disposition codes</strong> for batch-controlled items.'},
+  {id:'fc011',domain:'D2',q:'What is an ABC classification in inventory management?',a:'<strong>ABC classification</strong> categorizes inventory by value/usage:<br>• <strong>A items</strong>: High value/usage (~20% of items = ~80% of value)<br>• <strong>B items</strong>: Moderate value/usage<br>• <strong>C items</strong>: Low value/usage (~50% of items = ~5% of value)<br>Used to prioritize cycle counting frequency and safety stock levels.'},
+  {id:'fc012',domain:'D2',q:'What is the difference between a Quality Order and a Quarantine Order?',a:'<strong>Quality Order</strong>: Triggers quality tests/inspections; the item remains available unless blocked. Results determine conformance.<br><strong>Quarantine Order</strong>: Physically moves items to a quarantine warehouse; items are <em>completely isolated</em> from normal inventory until released or scrapped.'},
+  {id:'fc013',domain:'D2',q:'What is a Quality Association and what does it automate?',a:'A <strong>Quality Association</strong> is a rule that <em>automatically creates Quality Orders</em> when certain events occur (e.g., purchase order receipt, production report-as-finished, sales packing slip). It links: reference type, item/group, warehouse, and the test group to apply.'},
+  {id:'fc014',domain:'D2',q:'What is the difference between a Maintenance Plan and a Maintenance Request in Asset Management?',a:'<strong>Maintenance Plan</strong>: Proactive/preventive schedule — defines <em>when</em> recurring maintenance should occur (time-based or counter-based).<br><strong>Maintenance Request</strong>: Reactive — a user-submitted request to address a fault or unplanned issue. Requests can be converted to Work Orders.'},
+  {id:'fc015',domain:'D2',q:'What is an Asset Lifecycle State and why does it matter?',a:'<strong>Asset Lifecycle States</strong> (e.g., Active, Under Repair, Inactive, Scrapped) control what actions can be performed on an asset. They are defined in <strong>Lifecycle Models</strong>. States prevent work orders from being created on scrapped assets, for example.'},
+  // D3 — Supply Chain Processes
+  {id:'fc016',domain:'D3',q:'What is the procurement cycle in D365 SCM? List the key steps.',a:'1. Purchase Requisition (optional) → 2. Request for Quotation (RFQ) → 3. Purchase Order created → 4. Confirmation → 5. Product Receipt (physical inventory) → 6. Vendor Invoice → 7. Payment. Workflows can require approval at multiple steps.'},
+  {id:'fc017',domain:'D3',q:'What is Consignment Inventory and how does ownership work?',a:'<strong>Consignment Inventory</strong>: The vendor owns the stock stored at your facility. Ownership transfers to you only when you <em>consume</em> the inventory. In D365, you use a consignment replenishment order to receive, and ownership change journals to transfer ownership and trigger payment.'},
+  {id:'fc018',domain:'D3',q:'What is Landed Cost and what does it track?',a:'<strong>Landed Cost</strong> tracks the total cost of shipping goods internationally, including: freight, insurance, duties, and port fees. It uses <strong>Voyages</strong> (shipments) and <strong>Shipping Containers</strong> to allocate these costs proportionally to purchase orders/items.'},
+  {id:'fc019',domain:'D3',q:'What is Available-to-Promise (ATP) vs Capable-to-Promise (CTP)?',a:'<strong>ATP</strong>: Calculates available quantity based on <em>current inventory + scheduled receipts − existing reservations</em>. Tells when stock is available.<br><strong>CTP</strong>: Goes further — if ATP fails, CTP checks whether <em>production capacity</em> can fulfill the order and gives a realistic delivery date including production lead time.'},
+  {id:'fc020',domain:'D3',q:'What is an Intercompany Order and when is it used?',a:'An <strong>Intercompany Order</strong> automates transactions between two legal entities within the same D365 environment. When a sales order is created in Entity A for Entity B\'s product, a linked purchase order is auto-created in Entity B, keeping both entities\' books synchronized.'},
+  {id:'fc021',domain:'D3',q:'What is a Purchase Agreement and how does it differ from a Purchase Order?',a:'A <strong>Purchase Agreement</strong> is a long-term contract with a vendor committing to buy a certain quantity/value over a period (with special pricing). A <strong>Purchase Order</strong> is the individual transaction that can reference and fulfill the agreement. Agreements track fulfillment progress.'},
+  // D4 — Warehouse Management & Transportation
+  {id:'fc022',domain:'D4',q:'What is a Location Directive and what does it do in WMS?',a:'A <strong>Location Directive</strong> tells the system <em>where to put away</em> received inventory or <em>where to pick</em> from during sales/transfer. Rules can be based on item, quantity, unit, zone, or other criteria. You define directives for each work order type (Purchase, Sales, Transfer, etc.).'},
+  {id:'fc023',domain:'D4',q:'What is a Wave in D365 Warehouse Management?',a:'A <strong>Wave</strong> groups multiple orders (sales, transfers, production) for batch processing. Wave processing: 1) Selects demand, 2) Runs wave methods (replenishment, containerization, load building), 3) Creates <strong>Work</strong> for warehouse workers. Waves can be manual or auto-processed.'},
+  {id:'fc024',domain:'D4',q:'What is the difference between a Work Template and a Location Directive?',a:'<strong>Work Template</strong>: Defines the <em>structure</em> of warehouse work (e.g., "Pick from bulk → Put to stage"). It specifies work line types (Pick/Put) and sequence.<br><strong>Location Directive</strong>: Resolves the <em>specific location</em> for each Pick or Put step defined in the work template.'},
+  {id:'fc025',domain:'D4',q:'What is Cross Docking in warehouse management?',a:'<strong>Cross Docking</strong>: Received inbound goods are moved directly to an outbound dock/staging area without being put into storage. In D365, it matches inbound shipments to outbound demand, creating work to move goods from receiving directly to the outbound dock, reducing handling and storage time.'},
+  {id:'fc026',domain:'D4',q:'What is Cycle Counting and how does it differ from a full physical inventory?',a:'<strong>Cycle Counting</strong>: A continuous process where portions of inventory are counted on a rotating schedule — high-value (A) items more frequently. Work is created for specific locations/items.<br><strong>Physical inventory</strong>: A complete count of all inventory at once, requiring a freeze. Cycle counting causes less disruption.'},
+  {id:'fc027',domain:'D4',q:'What does a Warehouse Management Mobile App detour do?',a:'A <strong>detour</strong> allows workers to temporarily step away from their current task flow to perform a secondary task (e.g., check inventory, create a label, adjust a quantity), then <em>automatically return</em> to their original task with context preserved. Configured in the mobile device step setup.'},
+  {id:'fc028',domain:'D4',q:'What is a Freight Reconciliation in Transportation Management?',a:'<strong>Freight Reconciliation</strong> matches the actual freight invoice from a carrier against the system-calculated freight charges. Discrepancies can be accepted or disputed. Can be done <strong>manually</strong> (review each bill) or <strong>automatically</strong> (system matches within a tolerance threshold).'},
+  // D5 — Master Planning
+  {id:'fc029',domain:'D5',q:'What is the difference between a Static Master Plan and a Dynamic Master Plan?',a:'<strong>Static Plan</strong>: Run periodically (daily/weekly); stable reference for planning. Not updated in real-time.<br><strong>Dynamic Plan</strong>: Updated immediately when changes occur (new orders, BOM changes). Used for day-to-day operational decisions. D365 supports running both in parallel.'},
+  {id:'fc030',domain:'D5',q:'What are Positive Days and Negative Days in master planning coverage?',a:'<strong>Positive Days</strong>: How many days into the future the system looks for existing supply before creating a new planned order. Prevents creating redundant orders when supply already exists nearby in time.<br><strong>Negative Days</strong>: How many days in the <em>past</em> an existing supply can be used to cover future demand before it\'s considered too late and a new order is triggered.'},
+  {id:'fc031',domain:'D5',q:'What are Action Messages in master planning?',a:'<strong>Action Messages</strong> are system-generated suggestions to optimize the supply plan:<br>• <strong>Advance</strong>: Move order earlier to meet demand sooner<br>• <strong>Postpone</strong>: Push order later — demand moved out<br>• <strong>Increase</strong>: Increase order quantity<br>• <strong>Decrease</strong>: Reduce order quantity<br>• <strong>Cancel</strong>: Delete the order — no longer needed'},
+  {id:'fc032',domain:'D5',q:'What is a Coverage Group and what does it control?',a:'A <strong>Coverage Group</strong> defines how master planning calculates supply for items assigned to it. Key settings: coverage code (Min/Max, Period, Requirement), positive/negative days, safety margin (receipt, reorder, issue), and time fences. Assigned to items directly or via item coverage.'},
+  {id:'fc033',domain:'D5',q:'What is Safety Stock and how is it configured in D365 SCM?',a:'<strong>Safety Stock</strong> is a buffer quantity maintained to protect against demand variability and supply uncertainty. In D365, configured via:<br>1. <strong>Item coverage</strong> → Minimum field<br>2. <strong>Safety stock journals</strong> → Calculate statistically from historical demand<br>Master planning generates planned orders to replenish below-minimum stock.'},
+  {id:'fc034',domain:'D5',q:'What is a Time Fence in master planning and name the three types?',a:'A <strong>Time Fence</strong> limits how far into the future master planning considers or acts on certain data:<br>1. <strong>Coverage time fence</strong>: How far ahead demand is considered<br>2. <strong>Freeze time fence</strong>: Period where planned orders are not automatically changed/deleted<br>3. <strong>Explosion time fence</strong>: How far BOM explosions are calculated'},
+];
+
+// ============================================================
+//  STATE
+// ============================================================
+const KEY = 'mb330tracker_v2';
+let state = JSON.parse(localStorage.getItem(KEY) || 'null') || {
+  checked: {},      // topicKey -> true/false
+  cardRatings: {},  // cardId -> {rating, nextReview, interval}
+  notes: '',
+  daysDone: {},     // dateStr -> true
+};
+
+function saveState() { localStorage.setItem(KEY, JSON.stringify(state)); }
+
+// ============================================================
+//  UTILITIES
+// ============================================================
+function topicKey(domainId, groupIdx, topicIdx) { return `${domainId}_${groupIdx}_${topicIdx}`; }
+
+function today() { return new Date().toISOString().split('T')[0]; }
+
+function addDays(dateStr, n) {
+  const d = new Date(dateStr); d.setDate(d.getDate() + n); return d.toISOString().split('T')[0];
+}
+
+function daysBetween(a, b) {
+  return Math.round((new Date(b) - new Date(a)) / 86400000);
+}
+
+// ============================================================
+//  COUNTDOWN
+// ============================================================
+function updateCountdown() {
+  const end = new Date('2026-05-25'); const now = new Date();
+  const diff = Math.max(0, Math.ceil((end - now) / 86400000));
+  document.getElementById('countdown-days').textContent = diff;
+}
+
+// ============================================================
+//  STATS
+// ============================================================
+function computeStats() {
+  let total = 0, completed = 0;
+  DOMAINS.forEach(d => d.groups.forEach((g, gi) => g.topics.forEach((t, ti) => {
+    total++;
+    if (state.checked[topicKey(d.id, gi, ti)]) completed++;
+  })));
+  const pct = total ? Math.round(completed / total * 100) : 0;
+  let due = 0;
+  const td = today();
+  FLASHCARDS.forEach(fc => {
+    const r = state.cardRatings[fc.id];
+    if (!r || r.nextReview <= td) due++;
+  });
+  document.getElementById('stat-completed').textContent = completed;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-pct').textContent = pct + '%';
+  document.getElementById('stat-due').textContent = due;
+  return { total, completed, pct, due };
+}
+
+// ============================================================
+//  DOMAIN PROGRESS BARS
+// ============================================================
+function renderDomainBars() {
+  const el = document.getElementById('domain-progress-bars');
+  el.innerHTML = '';
+  DOMAINS.forEach(d => {
+    let total = 0, done = 0;
+    d.groups.forEach((g, gi) => g.topics.forEach((t, ti) => {
+      total++;
+      if (state.checked[topicKey(d.id, gi, ti)]) done++;
+    }));
+    const pct = total ? Math.round(done / total * 100) : 0;
+    const colorMap = {D1:'fill-blue',D2:'fill-green',D3:'fill-orange',D4:'fill-blue',D5:'fill-green'};
+    el.innerHTML += `
+      <div class="progress-wrap">
+        <div class="progress-label">
+          <span><strong>${d.title}</strong> <span style="color:var(--gray);font-size:11px;">${d.pct}</span></span>
+          <span>${done}/${total} &nbsp; ${pct}%</span>
+        </div>
+        <div class="progress-bar"><div class="fill ${colorMap[d.id]}" style="width:${pct}%"></div></div>
+      </div>`;
+  });
+}
+
+// ============================================================
+//  TODAY'S PLAN
+// ============================================================
+const SCHEDULE_DATA = buildScheduleData();
+
+function buildScheduleData() {
+  // March 24 – May 25, 2026
+  // Phase allocations (days counted from March 24)
+  const plan = {};
+  const phases = [
+    {start:'2026-03-24', end:'2026-04-06', label:'Product Info Mgmt', color:'#dce9f8', domain:'D1'},
+    {start:'2026-04-07', end:'2026-04-18', label:'Inventory & Assets', color:'#e8f5e9', domain:'D2'},
+    {start:'2026-04-19', end:'2026-04-28', label:'Supply Chain Procs', color:'#fff3e0', domain:'D3'},
+    {start:'2026-04-29', end:'2026-05-12', label:'Warehouse & Transport', color:'#f3e5f5', domain:'D4'},
+    {start:'2026-05-13', end:'2026-05-19', label:'Master Planning', color:'#e0f2f1', domain:'D5'},
+    {start:'2026-05-20', end:'2026-05-25', label:'Final Revision', color:undefined, domain:'REVIEW'},
+  ];
+  // Assign phases to dates
+  let d = new Date('2026-03-24');
+  const endD = new Date('2026-05-25');
+  while (d <= endD) {
+    const ds = d.toISOString().split('T')[0];
+    const dow = d.getDay(); // 0=Sun
+    let phase = phases.find(p => ds >= p.start && ds <= p.end);
+    if (phase) {
+      if (dow === 0) {
+        plan[ds] = {label: 'Review / Rest', color: undefined, type: 'review'};
+      } else {
+        plan[ds] = {label: phase.label, color: phase.color, domain: phase.domain, type: 'study'};
+      }
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  return plan;
+}
+
+function renderTodaysPlan() {
+  const el = document.getElementById('todays-plan');
+  const td = today();
+  const plan = SCHEDULE_DATA[td];
+  const dueCards = FLASHCARDS.filter(fc => {
+    const r = state.cardRatings[fc.id];
+    return !r || r.nextReview <= td;
+  });
+
+  let html = '';
+  if (plan) {
+    const icon = plan.type === 'review' ? '🔄' : '📚';
+    html += `<div class="alert alert-info"><span>${icon}</span><span>Today's focus: <strong>${plan.label}</strong></span></div>`;
+  }
+  if (dueCards.length > 0) {
+    html += `<div class="alert alert-warn"><span>🃏</span><span><strong>${dueCards.length} flashcard(s) due today</strong> — head to the Flashcards tab and review them!</span></div>`;
+  } else {
+    html += `<div class="alert alert-success"><span>✅</span><span>No flashcards due — you're caught up on reviews!</span></div>`;
+  }
+
+  // Quick checklist for today's domain
+  if (plan && plan.domain && plan.domain !== 'REVIEW') {
+    const dom = DOMAINS.find(d => d.id === plan.domain);
+    if (dom) {
+      let unchecked = [];
+      dom.groups.forEach((g, gi) => g.topics.forEach((t, ti) => {
+        if (!state.checked[topicKey(dom.id, gi, ti)]) unchecked.push(t);
+      }));
+      if (unchecked.length > 0) {
+        html += `<div style="margin-top:8px;"><strong>Remaining topics in today's domain (${dom.title}):</strong><ul style="margin:6px 0 0 18px; font-size:13px; color:var(--gray);">`;
+        unchecked.slice(0, 5).forEach(t => { html += `<li style="margin-bottom:3px;">${t}</li>`; });
+        if (unchecked.length > 5) html += `<li>... and ${unchecked.length - 5} more</li>`;
+        html += `</ul></div>`;
+      } else {
+        html += `<div class="alert alert-success" style="margin-top:8px;"><span>🎉</span><span>All topics in <strong>${dom.title}</strong> are checked off!</span></div>`;
+      }
+    }
+  }
+
+  el.innerHTML = html || '<p style="color:var(--gray);">Outside study period.</p>';
+}
+
+// ============================================================
+//  TOPIC CHECKLIST
+// ============================================================
+function renderTopics() {
+  const el = document.getElementById('domain-list');
+  el.innerHTML = '';
+  DOMAINS.forEach(d => {
+    let total = 0, done = 0;
+    d.groups.forEach((g, gi) => g.topics.forEach((t, ti) => {
+      total++; if (state.checked[topicKey(d.id, gi, ti)]) done++;
+    }));
+    const pct = total ? Math.round(done / total * 100) : 0;
+
+    let groupsHtml = '';
+    d.groups.forEach((g, gi) => {
+      let itemsHtml = '';
+      g.topics.forEach((t, ti) => {
+        const k = topicKey(d.id, gi, ti);
+        const checked = state.checked[k] ? 'checked' : '';
+        // Find related flashcard
+        const relatedFc = FLASHCARDS.find(fc => fc.domain === d.id);
+        const rating = state.cardRatings[relatedFc?.id];
+        let rs = 'rs-new'; let rsLabel = 'New';
+        if (rating) { rs = 'rs-'+rating.rating; rsLabel = rating.rating.charAt(0).toUpperCase()+rating.rating.slice(1); }
+
+        itemsHtml += `
+          <div class="topic-item">
+            <div class="topic-check">
+              <input type="checkbox" id="${k}" ${checked} onchange="toggleTopic('${k}')">
+              <label for="${k}">${t}</label>
+            </div>
+            <button class="recall-btn" onclick="jumpToFlashcard('${d.id}')">Quiz Me</button>
+          </div>`;
+      });
+      groupsHtml += `<div class="topic-group"><div class="topic-group-title">${g.name}</div>${itemsHtml}</div>`;
+    });
+
+    el.innerHTML += `
+      <div class="domain" id="dom-${d.id}">
+        <div class="domain-header" onclick="toggleDomain('${d.id}')">
+          <div class="domain-badge ${d.badgeClass}">${d.pct}</div>
+          <div class="domain-title">${d.title}</div>
+          <div class="domain-pct">${done}/${total} · ${pct}%</div>
+          <div class="domain-chevron">▶</div>
+        </div>
+        <div class="domain-body">${groupsHtml}</div>
+      </div>`;
+  });
+}
+
+function toggleTopic(k) {
+  state.checked[k] = document.getElementById(k).checked;
+  saveState();
+  computeStats();
+  renderDomainBars();
+  renderTodaysPlan();
+  // Re-render just the domain count in header
+  renderTopics();
+}
+
+function toggleDomain(id) {
+  const el = document.getElementById('dom-'+id);
+  el.classList.toggle('open');
+}
+
+// ============================================================
+//  FLASHCARDS
+// ============================================================
+let currentDeck = [];
+let currentIdx = 0;
+let fcFilter = 'all';
+
+function buildDeck(filter) {
+  const td = today();
+  if (filter === 'all') return [...FLASHCARDS];
+  if (filter === 'due') return FLASHCARDS.filter(fc => { const r = state.cardRatings[fc.id]; return !r || r.nextReview <= td; });
+  if (filter === 'again') return FLASHCARDS.filter(fc => { const r = state.cardRatings[fc.id]; return r && r.rating === 'again'; });
+  // domain filter
+  return FLASHCARDS.filter(fc => fc.domain === filter);
+}
+
+function setFcFilter(f, btn) {
+  fcFilter = f;
+  document.querySelectorAll('.fc-filter button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentDeck = buildDeck(f);
+  currentIdx = 0;
+  renderCard();
+}
+
+function renderCard() {
+  if (currentDeck.length === 0) {
+    document.getElementById('fc-question').textContent = 'No cards match this filter.';
+    document.getElementById('fc-domain').textContent = '';
+    document.getElementById('fc-answer').innerHTML = '';
+    document.getElementById('fc-counter').innerHTML = 'No cards';
+    document.getElementById('rating-row').style.display = 'none';
+    return;
+  }
+  const fc = currentDeck[currentIdx];
+  const domainObj = DOMAINS.find(d => d.id === fc.domain);
+  document.getElementById('fc-domain').textContent = domainObj ? domainObj.title : fc.domain;
+  document.getElementById('fc-question').textContent = fc.q;
+  document.getElementById('fc-answer').innerHTML = fc.a;
+  document.getElementById('fc-idx').textContent = currentIdx + 1;
+  document.getElementById('fc-total').textContent = currentDeck.length;
+  const card = document.getElementById('flashcard');
+  card.classList.remove('revealed');
+  document.getElementById('rating-row').style.display = 'none';
+  updateFcProgressDisplay();
+}
+
+function revealCard() {
+  const card = document.getElementById('flashcard');
+  if (!card.classList.contains('revealed')) {
+    card.classList.add('revealed');
+    document.getElementById('rating-row').style.display = 'flex';
+  }
+}
+
+function rateCard(rating) {
+  if (currentDeck.length === 0) return;
+  const fc = currentDeck[currentIdx];
+  const r = state.cardRatings[fc.id] || {interval: 0};
+  const td = today();
+
+  // Simple SM-2 inspired scheduling
+  let interval;
+  if (rating === 'again') interval = 0;
+  else if (rating === 'hard') interval = 1;
+  else if (rating === 'good') interval = Math.max(3, Math.round((r.interval || 1) * 1.5));
+  else if (rating === 'easy') interval = Math.max(7, Math.round((r.interval || 1) * 2.5));
+
+  state.cardRatings[fc.id] = { rating, interval, nextReview: addDays(td, interval), lastReview: td };
+  saveState();
+  computeStats();
+  updateFcProgressDisplay();
+
+  // Move to next
+  if (currentIdx < currentDeck.length - 1) {
+    currentIdx++;
+  } else {
+    currentIdx = 0;
+  }
+  renderCard();
+}
+
+function updateFcProgressDisplay() {
+  const counts = {again:0, hard:0, good:0, easy:0};
+  FLASHCARDS.forEach(fc => {
+    const r = state.cardRatings[fc.id];
+    if (r) counts[r.rating] = (counts[r.rating] || 0) + 1;
+  });
+  document.getElementById('fp-again').textContent = counts.again;
+  document.getElementById('fp-hard').textContent = counts.hard;
+  document.getElementById('fp-good').textContent = counts.good;
+  document.getElementById('fp-easy').textContent = counts.easy;
+}
+
+function nextCard() {
+  if (currentDeck.length === 0) return;
+  currentIdx = (currentIdx + 1) % currentDeck.length;
+  renderCard();
+}
+
+function prevCard() {
+  if (currentDeck.length === 0) return;
+  currentIdx = (currentIdx - 1 + currentDeck.length) % currentDeck.length;
+  renderCard();
+}
+
+function shuffleCards() {
+  for (let i = currentDeck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [currentDeck[i], currentDeck[j]] = [currentDeck[j], currentDeck[i]];
+  }
+  currentIdx = 0;
+  renderCard();
+}
+
+function jumpToFlashcard(domainId) {
+  showTab('flashcards');
+  fcFilter = domainId;
+  document.querySelectorAll('.fc-filter button').forEach(b => {
+    b.classList.toggle('active', b.dataset.filter === domainId);
+  });
+  currentDeck = buildDeck(domainId);
+  currentIdx = 0;
+  renderCard();
+}
+
+// ============================================================
+//  SCHEDULE
+// ============================================================
+function renderSchedule() {
+  const el = document.getElementById('schedule-grid');
+  el.innerHTML = '';
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  days.forEach(d => { el.innerHTML += `<div class="sch-day header-day">${d}</div>`; });
+
+  const start = new Date('2026-03-24');
+  const end = new Date('2026-05-25');
+  const td = today();
+
+  // Fill empty days before March 24 (start on Tuesday)
+  const startDow = start.getDay(); // 2 = Tuesday
+  for (let i = 0; i < startDow; i++) { el.innerHTML += `<div class="sch-day empty"></div>`; }
+
+  let d = new Date(start);
+  while (d <= end) {
+    const ds = d.toISOString().split('T')[0];
+    const plan = SCHEDULE_DATA[ds];
+    const isDone = state.daysDone[ds];
+    const isToday = ds === td;
+    const isPast = ds < td;
+
+    let cls = 'sch-day scheduled';
+    let style = '';
+    if (isToday) cls = 'sch-day today';
+    else if (isDone) cls = 'sch-day done';
+    else if (plan && plan.type === 'review') cls = 'sch-day review';
+    else if (plan && plan.color) style = `background:${plan.color};`;
+    else if (isPast) cls = 'sch-day past';
+
+    const label = plan ? plan.label.split(' ')[0] + (plan.label.split(' ')[1] ? ' '+plan.label.split(' ')[1].substring(0,4) : '') : '';
+    el.innerHTML += `<div class="${cls}" style="${style}" title="${plan ? plan.label : ''}" onclick="markDayDone('${ds}')">
+      <div class="day-num">${d.getDate()}</div>
+      <div class="day-topic">${label}</div>
+    </div>`;
+    d.setDate(d.getDate() + 1);
+  }
+}
+
+function markDayDone(ds) {
+  state.daysDone[ds] = !state.daysDone[ds];
+  saveState();
+  renderSchedule();
+}
+
+// ============================================================
+//  NOTES
+// ============================================================
+function loadNotes() {
+  document.getElementById('study-notes').value = state.notes || '';
+}
+function saveNotes() {
+  state.notes = document.getElementById('study-notes').value;
+  saveState();
+  const s = document.getElementById('notes-saved');
+  s.style.display = 'inline';
+  setTimeout(() => { s.style.display = 'none'; }, 2000);
+}
+
+// ============================================================
+//  TABS
+// ============================================================
+function showTab(id) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  document.querySelector(`.nav button[onclick="showTab('${id}')"]`).classList.add('active');
+}
+
+// ============================================================
+//  LESSONS DATA
+// ============================================================
+const LESSONS = [
+  {
+    date: '2026-03-24', domain: 'D1', fcDomain: 'D1',
+    title: 'What is D365 Supply Chain Management?',
+    msLink: 'https://learn.microsoft.com/en-us/training/paths/explore-microsoft-dynamics-365-supply-chain-management/',
+    msLinkLabel: 'Intro to D365 SCM — Microsoft Learn',
+    intro: 'Before diving into exam topics, understand the landscape. Microsoft Dynamics 365 Supply Chain Management (D365 SCM) is an ERP module that manages the end-to-end movement of goods — from raw materials to the customer\'s door. It covers purchasing, inventory, warehousing, manufacturing, transportation, and planning.',
+    concepts: [
+      { term: 'Legal Entity', def: 'A company or organisation registered in D365. Most configuration (products, vendors, customers) is done per legal entity. Think of it as "one company in the system".' },
+      { term: 'Site & Warehouse', def: 'A Site is a physical location (factory, DC). A Warehouse belongs to a Site. Inventory always lives in a warehouse.' },
+      { term: 'Item / Product', def: 'Anything you buy, sell, store, or manufacture. Created centrally, then "released" to each legal entity that needs to use it.' },
+      { term: 'Transaction', def: 'Any movement of inventory — purchase receipt, sales shipment, transfer, adjustment. Every transaction updates quantities and financial ledger simultaneously.' },
+      { term: 'Workflow', def: 'An automated approval chain. Purchase orders over a certain value can require manager approval before being sent to the vendor.' },
+      { term: 'Dimension Groups', def: 'Control which attributes are tracked on inventory. Storage dimensions (site/warehouse), Tracking dimensions (batch/serial), Product dimensions (colour/size).' },
+    ],
+    body: `<h3>The Five Exam Domains at a Glance</h3>
+<ul>
+<li><strong>D1 — Product Information Management (25–30%)</strong>: How to set up and manage items — the foundation everything else builds on.</li>
+<li><strong>D2 — Inventory &amp; Asset Management (20–25%)</strong>: How inventory moves, quality control, and equipment maintenance.</li>
+<li><strong>D3 — Supply Chain Processes (15–20%)</strong>: Buying from vendors and selling to customers.</li>
+<li><strong>D4 — Warehouse &amp; Transportation (20–25%)</strong>: Physical warehouse operations, pick/pack/ship, carrier management.</li>
+<li><strong>D5 — Master Planning (10–15%)</strong>: How the system calculates what to buy and produce, and when.</li>
+</ul>
+<h3>How the Pieces Connect</h3>
+<p>A typical flow: a <strong>Sales Order</strong> creates demand → <strong>Master Planning</strong> generates a planned purchase order → buyer converts it to a <strong>Purchase Order</strong> → warehouse receives goods using <strong>WMS</strong> → goods are picked and shipped, updating <strong>Inventory</strong> → finance posts the revenue. Every step relies on <strong>Product Information</strong> being set up correctly first.</p>`,
+    examTips: ['D1 (Product Info Mgmt) is the biggest domain at 25–30% — master it first.', 'The exam tests configuration, not button-clicking. Know WHY each setting exists.', 'Understand what happens if you forget to configure something — e.g. no item model group = can\'t post inventory.'],
+    selfCheck: ['What is the difference between a product and a released product?', 'Name the three types of inventory dimension groups.', 'Why must a product be "released" to a legal entity before it can be used?'],
+  },
+  {
+    date: '2026-03-25', domain: 'D1', fcDomain: 'D1',
+    title: 'Products, Product Masters & Variants',
+    msLink: 'https://learn.microsoft.com/en-us/training/paths/configure-manage-products-inventory-dyn365-supply-chain-mgmt/',
+    msLinkLabel: 'Products & Inventory Learning Path',
+    intro: 'In D365 SCM, an item you buy, sell, or manufacture is called a <strong>product</strong>. Products are created in a global product catalogue and then released to individual legal entities. This separation means one product definition can be shared across multiple companies.',
+    concepts: [
+      { term: 'Product (global)', def: 'The master definition — item number, name, type. Lives in the shared product catalogue. Not usable until released.' },
+      { term: 'Released Product', def: 'A product made available in a specific legal entity. Has additional properties: unit, price, costing method, BOM, etc.' },
+      { term: 'Product Master', def: 'A product that has variants — e.g. a T-shirt that comes in S/M/L and Red/Blue. The master defines the template; variants are the specific combinations.' },
+      { term: 'Product Variant', def: 'A specific combination of product dimensions from a master — e.g. T-shirt, Size=L, Colour=Blue. Gets its own item number automatically.' },
+      { term: 'Product Type', def: 'Either "Item" (physical, tracked in inventory) or "Service" (non-stocked, e.g. installation fee).' },
+      { term: 'Product Template', def: 'A saved set of default values you apply when creating new products — saves time when releasing many similar items.' },
+    ],
+    body: `<h3>Product Dimensions</h3>
+<p>Product dimensions define the axes of variation for a product master. D365 supports five:</p>
+<ul>
+<li><strong>Configuration</strong> — complex rule-based variants (e.g. a PC with processor/RAM options)</li>
+<li><strong>Colour</strong> — colour variants</li>
+<li><strong>Size</strong> — size variants</li>
+<li><strong>Style</strong> — style variants (e.g. Men's/Women's)</li>
+<li><strong>Version</strong> — engineering/product version (used in PLM scenarios)</li>
+</ul>
+<p>You assign a <strong>Product Dimension Group</strong> to a product master, which specifies which of the above dimensions are active for that master. Variants are then auto-generated from all possible combinations, or created individually.</p>
+<h3>Creating and Releasing Products</h3>
+<p>Step 1: Create the product in <em>Product information management &gt; Products &gt; All products</em>. Step 2: Click <strong>Release products</strong> to make it available in a legal entity. Until released, a product cannot be transacted on — you can't create a purchase order for an unreleased product.</p>
+<h3>Product Lifecycle States</h3>
+<p>Each product can have a lifecycle state (e.g. <em>Design, Active, Discontinued</em>). These states control whether the product can be used in transactions — "Discontinued" products can be blocked from new orders while historical data remains intact.</p>`,
+    examTips: ['Know the difference: Product Master (has variants) vs. Product (single, no variants).', 'A product MUST be released to a legal entity before any transactions can be posted.', 'Product templates are not the same as product masters — templates are configuration shortcuts.'],
+    selfCheck: ['What is the difference between a product master and a product variant?', 'You try to raise a purchase order for an item but it doesn\'t appear in the lookup. What is the most likely cause?', 'Name two product dimensions and give a real-world example for each.'],
+  },
+  {
+    date: '2026-03-26', domain: 'D1', fcDomain: 'D1',
+    title: 'Bills of Materials (BOMs) & Category Hierarchies',
+    msLink: 'https://learn.microsoft.com/en-us/training/paths/configure-manage-products-inventory-dyn365-supply-chain-mgmt/',
+    msLinkLabel: 'Products & Inventory Learning Path',
+    intro: 'A Bill of Materials (BOM) tells the system exactly what components are needed to build or assemble a finished product. Category hierarchies organise your product catalogue into a logical tree used for reporting, procurement policies, and e-commerce.',
+    concepts: [
+      { term: 'BOM', def: 'A list of raw materials, components, and sub-assemblies — with quantities — required to produce one unit of a finished item.' },
+      { term: 'BOM Version', def: 'A date-ranged or site-specific version of a BOM. You can have version 1 active from Jan–Jun and version 2 active from Jul onwards.' },
+      { term: 'BOM Line Type', def: 'Controls how a component is sourced: Item (from stock), Phantom (transparent sub-assembly), Vendor (buy direct), Pegged supply.' },
+      { term: 'Category Hierarchy', def: 'A tree structure grouping products (e.g. Electronics > Computers > Laptops). Different hierarchy types serve different purposes.' },
+      { term: 'Hierarchy Type', def: 'Each hierarchy has a type: Procurement (used in purchase policies), Sales (used in sales analysis), Retail, etc.' },
+      { term: 'Product Attribute', def: 'Additional metadata on a product — e.g. Weight, Hazard class, Country of origin. Assigned via attribute groups to categories.' },
+    ],
+    body: `<h3>BOMs in Practice</h3>
+<p>If you manufacture a bicycle, your BOM might include: 2x Wheel, 1x Frame, 1x Handlebar, 1x Chain. When a production order is created, the system uses the BOM to calculate what inventory to consume.</p>
+<p><strong>BOM Versions</strong> are important because manufacturing processes change. By versioning, you can plan future changes without affecting current production. A version can be tied to:</p>
+<ul>
+<li><strong>Site</strong> — Factory A uses different components than Factory B</li>
+<li><strong>Date range</strong> — New component specification starts 1 April</li>
+<li><strong>Quantity</strong> — Different component ratios for large vs. small batches</li>
+</ul>
+<h3>Category Hierarchies</h3>
+<p>Categories help you apply policies at scale. Example: a <strong>procurement category hierarchy</strong> lets you set a default vendor for all "Office Supplies" items at once, rather than item by item. Categories can also carry <strong>product attributes</strong> — if "Chemicals" category has a "Hazard Class" attribute, every product in that category gets that attribute automatically.</p>`,
+    examTips: ['BOM versions can be site-specific — two factories can have different BOMs for the same finished product.', 'The "Phantom" BOM line type means the sub-assembly is not actually produced as a separate item — its components are rolled up into the parent production order.', 'Category hierarchy TYPE determines where it\'s used — procurement, sales, etc.'],
+    selfCheck: ['Why would you create multiple BOM versions for the same product?', 'What is a "phantom" BOM line and when would you use it?', 'How do product attributes relate to category hierarchies?'],
+  },
+  {
+    date: '2026-03-27', domain: 'D1', fcDomain: 'D1',
+    title: 'Inventory Dimensions & Item Model Groups',
+    msLink: 'https://learn.microsoft.com/en-us/training/paths/configure-manage-products-inventory-dyn365-supply-chain-mgmt/',
+    msLinkLabel: 'Products & Inventory Learning Path',
+    intro: 'Inventory dimensions define how precisely D365 tracks your inventory. Item model groups control the financial behaviour of inventory — how it\'s costed and how it posts to the general ledger. Both are assigned to every released product.',
+    concepts: [
+      { term: 'Storage Dimension Group', def: 'Defines which physical location dimensions are tracked: Site, Warehouse, Location, Pallet ID, Inventory Status. Higher detail = more control but more complexity.' },
+      { term: 'Tracking Dimension Group', def: 'Defines whether items are tracked by Batch number and/or Serial number. Batch = group of units with shared properties; Serial = each unit individually.' },
+      { term: 'Product Dimension Group', def: 'Links the product dimensions (Colour, Size, Style, Config, Version) that are active for a product master.' },
+      { term: 'Item Model Group', def: 'Controls costing method (FIFO, LIFO, Weighted avg, Standard cost), stocking policy, and physical/financial posting rules.' },
+      { term: 'Costing Method', def: 'FIFO: first in, first out. LIFO: last in, first out. Weighted Average: average of all stock. Standard Cost: a pre-set cost, variance tracked separately.' },
+      { term: 'Stocked product', def: 'Setting in item model group. If unchecked, the item is non-stocked (e.g. a service) and inventory quantities are not maintained.' },
+    ],
+    body: `<h3>Why Dimension Groups Matter</h3>
+<p>Imagine you receive 100 units of a chemical. With no tracking dimensions, you just know you have 100 units. With a <strong>batch tracking dimension</strong>, you know batch B001 was received on 1 March, expires 1 September — critical for food/pharma compliance.</p>
+<p>With a <strong>location storage dimension</strong> active, the system tracks that 40 units are in Aisle A-01 and 60 units are in Aisle B-03 — enabling directed putaway and picking in a WMS-enabled warehouse.</p>
+<h3>Item Model Group — Costing Methods</h3>
+<ul>
+<li><strong>FIFO</strong>: Oldest receipts are issued first. Good when inventory ages (perishables).</li>
+<li><strong>LIFO</strong>: Most recent receipts are issued first. Less common, restricted in some countries.</li>
+<li><strong>Weighted Average</strong>: Running average cost updates with every receipt. Simple, widely used.</li>
+<li><strong>Standard Cost</strong>: A fixed predefined cost per unit. Any difference between actual and standard is posted as a <em>variance</em>. Used heavily in manufacturing.</li>
+</ul>
+<h3>Reservation Hierarchies</h3>
+<p>A <strong>reservation hierarchy</strong> defines which dimensions must be specified before a reservation, and which are determined during warehouse operations. For WMS warehouses, location and license plate are "below the reservation line" — the system picks the exact location at wave/pick time, not when the order is entered.</p>`,
+    examTips: ['Once transactions are posted, you CANNOT change the item model group or dimension groups — configure these before going live.', 'Standard cost items require a costing version to be active with a pending cost activated before any transactions.', '"Active" storage dimension = tracked; "inactive" = not tracked. Location must be active for WMS advanced features to work.'],
+    selfCheck: ['What is the difference between a storage dimension group and a tracking dimension group?', 'A product is receiving batch numbers but the system won\'t let you enter one. What configuration is likely missing?', 'Why would a manufacturer choose Standard Cost over Weighted Average?'],
+  },
+  {
+    date: '2026-03-28', domain: 'D1', fcDomain: 'D1',
+    title: 'Costing Versions, Trade Agreements & Pricing',
+    msLink: 'https://learn.microsoft.com/en-us/training/paths/configure-manage-products-inventory-dyn365-supply-chain-mgmt/',
+    msLinkLabel: 'Products & Inventory Learning Path',
+    intro: 'Costing versions store the cost data used to value inventory. Trade agreements store the pricing and discount information used on purchase and sales orders. Together, they ensure D365 always uses the right cost and price for every transaction.',
+    concepts: [
+      { term: 'Costing Version (Standard)', def: 'Holds standard costs for items. Must have a cost activated before transactions can be posted for standard cost items.' },
+      { term: 'Costing Version (Planned)', def: 'Used for simulations — what if material costs rise 10%? Does not affect actual inventory valuation.' },
+      { term: 'Pending Cost', def: 'A cost entered but not yet activated. Activation makes it the current standard cost and triggers revaluation of on-hand inventory.' },
+      { term: 'Trade Agreement', def: 'Stores price/discount rules for specific customers, vendors, item groups, currencies and date ranges.' },
+      { term: 'Price Group', def: 'A grouping that lets you apply the same trade agreement to multiple customers or vendors at once.' },
+      { term: 'Default Order Settings', def: 'Per-item settings for default order quantity, lead time, site/warehouse, and reorder parameters. Sourced automatically onto orders.' },
+    ],
+    body: `<h3>How Trade Agreements Work</h3>
+<p>When a user creates a sales order line for Item X, D365 searches for trade agreements in a specific priority order to find the best price:</p>
+<ol style="margin-left:20px; margin-bottom:10px;">
+<li>Exact customer + exact item</li>
+<li>Customer group + exact item</li>
+<li>All customers + exact item</li>
+<li>Item group combinations, etc.</li>
+</ol>
+<p>The system picks the best matching rule and applies the price automatically. Trade agreements can include:</p>
+<ul>
+<li><strong>Sales price</strong> / <strong>Purchase price</strong></li>
+<li><strong>Line discount</strong> — discount per line</li>
+<li><strong>Multiline discount</strong> — discount triggered when multiple lines qualify</li>
+<li><strong>Total discount</strong> — discount on the entire order total</li>
+</ul>
+<h3>Unit Conversions</h3>
+<p>Products can be bought in one unit and sold in another. Example: Buy in <em>Cases</em> (12 units), sell in <em>Each</em>. You configure a <strong>product unit conversion</strong> (1 Case = 12 Each). The system automatically converts quantities on order lines and inventory movements.</p>
+<h3>Bar Codes & GTIN</h3>
+<p><strong>GTIN</strong> (Global Trade Item Number) is the international standard barcode identifier for products. In D365, you assign GTINs to products and use them for: scanning items in the warehouse mobile app, EDI transactions with trading partners, and label printing.</p>`,
+    examTips: ['A standard cost item with no activated cost will error when you try to post a transaction.', 'Trade agreement journals must be posted to take effect — creating the journal alone doesn\'t activate prices.', 'Default order settings are pulled onto purchase/sales order lines automatically but can be overridden per order.'],
+    selfCheck: ['What is the difference between a standard costing version and a planned costing version?', 'A vendor always sends a price in EUR but your orders are in GBP. Where would you configure the EUR price?', 'What must you do to a "pending" cost before it affects inventory valuation?'],
+  },
+  {
+    date: '2026-03-30', domain: 'D1', fcDomain: 'D1',
+    title: 'Product Filter Codes & Unit Sequence Groups',
+    msLink: 'https://learn.microsoft.com/en-us/training/paths/configure-manage-products-inventory-dyn365-supply-chain-mgmt/',
+    msLinkLabel: 'Products & Inventory Learning Path',
+    intro: 'Product filter codes control where items can be stored in a WMS warehouse. Unit sequence groups define the hierarchy of units of measure used during warehouse operations. Both are prerequisites for advanced warehousing.',
+    concepts: [
+      { term: 'Product Filter Code', def: 'A user-defined code (e.g. FLAMMABLE, FROZEN, HAZMAT) assigned to both products and warehouse locations. The WMS only directs items to locations that share a matching filter code.' },
+      { term: 'Filter Group', def: 'Combines multiple product filter codes. A product can belong to a filter group; a location can permit a filter group.' },
+      { term: 'Unit Sequence Group', def: 'Defines the hierarchy of units for a product: e.g. Pallet > Box > Each. The warehouse mobile app uses this to determine what units to pick in.' },
+      { term: 'License Plate', def: 'A scannable ID attached to a pallet or container in a WMS warehouse. Tracks exactly what is on a pallet and where it is.' },
+      { term: 'Inventory Status', def: 'A dimension that marks inventory as Available, Blocked, QC Hold, etc. Affects whether the item can be reserved or picked.' },
+      { term: 'WMS-enabled warehouse', def: 'A warehouse that uses advanced warehouse management features — location directives, wave processing, mobile devices. Requires specific setup including reservation hierarchies.' },
+    ],
+    body: `<h3>Why Product Filter Codes Matter</h3>
+<p>Imagine your warehouse has a refrigerated zone and a dry goods zone. You assign filter code <strong>COLD</strong> to refrigerated products and to refrigerated locations. Location directives then only put COLD items in COLD locations — the system enforces this automatically.</p>
+<p>Without filter codes, a worker might accidentally put frozen items in a dry goods location. Filter codes prevent this through configuration, not just training.</p>
+<h3>Unit Sequence Groups in Picking</h3>
+<p>When a warehouse worker picks 2.5 pallets of an item, the system breaks this down using the unit sequence group:</p>
+<ul>
+<li>2 full pallets → pick from Bulk zone</li>
+<li>The remaining 0.5 pallet (broken down to boxes) → pick from Pick zone</li>
+</ul>
+<p>This is called <strong>cluster picking</strong> or <strong>mixed unit picking</strong> and is driven entirely by the unit sequence group configuration.</p>
+<h3>D1 Summary — What to Remember</h3>
+<p>The entire D1 domain is about making sure products are correctly defined <em>before</em> any transactions happen. Think of D1 as "foundations" — if the product setup is wrong, everything downstream (purchasing, sales, warehousing, planning) will have problems.</p>`,
+    examTips: ['Product filter codes are only relevant for WMS-enabled warehouses — don\'t confuse with regular location rules.', 'Unit sequence groups are required if you want to use the "break bulk" or mixed-unit picking features in the mobile app.', 'Inventory Status is a storage dimension — it must be active in the storage dimension group to use it.'],
+    selfCheck: ['A warehouse has a hazardous materials zone. What D365 feature ensures only hazmat products are stored there?', 'What is a unit sequence group used for in warehouse operations?', 'What is the difference between Inventory Status and Inventory Blocking?'],
+  },
+  {
+    date: '2026-03-31', domain: 'D1', fcDomain: 'D1',
+    title: 'D1 Review — Active Recall Session',
+    msLink: 'https://learn.microsoft.com/en-us/training/paths/configure-manage-products-inventory-dyn365-supply-chain-mgmt/',
+    msLinkLabel: 'Products & Inventory Learning Path',
+    intro: 'Today is a review day for Domain 1 (Product Information Management). Don\'t read new material — instead, actively recall what you\'ve learned. Cover the answers below and test yourself before revealing them.',
+    concepts: [],
+    body: `<h3>Key Concepts to Recall from D1</h3>
+<ol style="margin-left:20px;">
+<li style="margin-bottom:8px;">What are the 5 product dimensions? When do you use a product master vs. a simple product?</li>
+<li style="margin-bottom:8px;">What is the difference between a storage dimension group and a tracking dimension group? Give an example of each.</li>
+<li style="margin-bottom:8px;">What are the 4 costing methods in the item model group? Which is most common in manufacturing?</li>
+<li style="margin-bottom:8px;">What must you do before a standard cost item can be transacted on?</li>
+<li style="margin-bottom:8px;">What is a BOM version and why would you create multiple versions for the same product?</li>
+<li style="margin-bottom:8px;">What is the difference between a Trade Agreement journal and a Price Group?</li>
+<li style="margin-bottom:8px;">What is a Reservation Hierarchy and why does it matter for WMS?</li>
+<li style="margin-bottom:8px;">What do Product Filter Codes control?</li>
+</ol>
+<h3>Answer Guide (reveal after attempting)</h3>
+<details style="margin-top:10px; cursor:pointer;">
+<summary style="font-weight:700; color:var(--blue); padding:8px; background:var(--blue-light); border-radius:6px;">Show Answers</summary>
+<ol style="margin-left:20px; margin-top:10px;">
+<li style="margin-bottom:6px;">Configuration, Colour, Size, Style, Version. Use a product master when you need variants (e.g. T-shirts in multiple sizes/colours); use a simple product for single items.</li>
+<li style="margin-bottom:6px;">Storage = physical location tracking (Site, Warehouse, Location). Tracking = identity tracking (Batch number, Serial number).</li>
+<li style="margin-bottom:6px;">FIFO, LIFO, Weighted Average, Standard Cost. Standard cost is most common in manufacturing because it enables variance analysis.</li>
+<li style="margin-bottom:6px;">Create a costing version, enter a pending cost, then <strong>activate</strong> the cost.</li>
+<li style="margin-bottom:6px;">A BOM version is a date/site-ranged variant of a BOM. Multiple versions allow site-specific components or future planned changes without disrupting current production.</li>
+<li style="margin-bottom:6px;">A Trade Agreement journal holds individual pricing rules. A Price Group groups customers/vendors so one agreement applies to many at once.</li>
+<li style="margin-bottom:6px;">A reservation hierarchy defines which dimensions must be specified at order entry vs. at warehouse picking time. For WMS, location/license plate are "below the line" — resolved at picking, not order entry.</li>
+<li style="margin-bottom:6px;">Product filter codes control which products can be stored in which warehouse locations — used for hazmat segregation, temperature zones, etc.</li>
+</ol>
+</details>`,
+    examTips: ['Spend 20 minutes on the Flashcards tab today — filter by D1 and go through all cards.', 'If you got any answer wrong, go back to that lesson\'s day and reread it.'],
+    selfCheck: [],
+  },
+  {
+    date: '2026-04-01', domain: 'D1', fcDomain: 'D1',
+    title: 'D1 Deep Dive — Configuration Scenarios',
+    msLink: 'https://learn.microsoft.com/en-us/training/paths/configure-manage-products-inventory-dyn365-supply-chain-mgmt/',
+    msLinkLabel: 'Products & Inventory Learning Path',
+    intro: 'Today consolidates D1 by working through configuration scenarios — the type of questions that appear on the exam. Instead of facts, practice reasoning through setup decisions.',
+    concepts: [],
+    body: `<h3>Scenario 1: New Pharmaceutical Product</h3>
+<p>A pharmaceutical company needs to track a new drug. Requirements: track by batch number, track expiry date, store in specific temperature-controlled locations, buy in kg but dispense in mg.</p>
+<p><strong>Configuration checklist:</strong></p>
+<ul>
+<li>Tracking dimension group: Batch number active ✓</li>
+<li>Batch attributes: add Expiry Date attribute ✓</li>
+<li>Storage dimension group: Location active (for temperature zone control) ✓</li>
+<li>Product filter code: COLD or TEMPERATURE-CONTROLLED ✓</li>
+<li>Unit conversion: 1 kg = 1,000,000 mg ✓</li>
+<li>Item model group: Consider FIFO (FEFO — First Expired First Out — is a batch sort order) ✓</li>
+</ul>
+<h3>Scenario 2: Standard Cost Manufactured Item</h3>
+<p>A manufacturer produces Item A using standard costs. They want to plan for a cost increase next quarter.</p>
+<p><strong>Configuration approach:</strong></p>
+<ul>
+<li>Item model group: Standard cost costing method</li>
+<li>Current costing version: has active cost = £10/unit</li>
+<li>Create a <strong>second (planned) costing version</strong>: enter pending cost £11/unit</li>
+<li>Use planned costing version for "what-if" simulations in master planning</li>
+<li>When Q3 arrives: activate the new cost in the <strong>standard costing version</strong></li>
+</ul>
+<h3>Scenario 3: Multi-Variant T-Shirt</h3>
+<p>A clothing retailer sells T-shirts in 3 sizes (S, M, L) and 4 colours (Red, Blue, Green, Black).</p>
+<ul>
+<li>Create a <strong>product master</strong> for "T-Shirt"</li>
+<li>Assign product dimension group with Size and Colour active</li>
+<li>System generates 3 × 4 = 12 variants automatically</li>
+<li>Release all variants to the legal entity at once</li>
+<li>Each variant gets its own inventory — you can have 50 Red/S and 0 Blue/L</li>
+</ul>`,
+    examTips: ['Exam scenarios often describe a business requirement — your job is to identify which D365 feature addresses it.', 'FEFO (First Expired First Out) is NOT a costing method — it\'s a batch sorting method configured on the tracking dimension group.', 'You can have different trade agreements for different units of measure — buy price per Case, sell price per Each.'],
+    selfCheck: ['A company buys hazardous chemicals that must only be stored in Warehouse B. What feature enforces this?', 'An item has a standard cost of £5. A new receipt comes in at £6. What happens to the £1 difference?', 'Can two legal entities share the same BOM? If yes, how?'],
+  },
+  {
+    date: '2026-04-02', domain: 'D2', fcDomain: 'D2',
+    title: 'Inventory Journals & Transfer Orders',
+    msLink: 'https://learn.microsoft.com/en-us/training/paths/configure-manage-products-inventory-dyn365-supply-chain-mgmt/',
+    msLinkLabel: 'Products & Inventory Learning Path',
+    intro: 'Inventory journals are the mechanism for making direct adjustments to stock — outside of normal buying and selling. Transfer orders move stock between warehouses with a financial paper trail. Both are heavily tested in D2.',
+    concepts: [
+      { term: 'Inventory Adjustment Journal', def: 'Increases or decreases stock quantity with a P&L offset account. Used for write-offs, cycle count corrections, damaged goods.' },
+      { term: 'Movement Journal', def: 'Moves inventory value to/from a specific ledger account. Similar to adjustment but you specify the offset account on each line.' },
+      { term: 'Transfer Journal', def: 'Moves inventory between warehouses or locations within the SAME legal entity — no financial posting, no ownership change.' },
+      { term: 'Transfer Order', def: 'A formal document to transfer stock between warehouses with shipment/receipt steps and optional financial posting (intersite). Unlike the journal, has a Ship and Receive step.' },
+      { term: 'Item Arrival Journal', def: 'Registers the physical arrival of items (purchase receipt) before the financial invoice is processed.' },
+      { term: 'Counting Journal', def: 'Records a physical count; the system calculates the variance between counted qty and system qty and generates an adjustment on posting.' },
+    ],
+    body: `<h3>Inventory Journals vs. Transfer Orders</h3>
+<p>The key distinction:</p>
+<ul>
+<li><strong>Transfer Journal</strong>: Simple, immediate, single-step. No shipment document. Good for internal location moves within one warehouse.</li>
+<li><strong>Transfer Order</strong>: Two-step process (Ship → Receive). Can cross site boundaries. Generates packing slip and receipt documents. Required when transferring between sites with different financial dimensions.</li>
+</ul>
+<h3>Inventory Closing & Adjustment</h3>
+<p>At period end, you run the <strong>inventory close</strong> to settle all inventory transactions at the final weighted average cost (or to apply FIFO cost layers). This process:</p>
+<ol style="margin-left:20px; margin-bottom:10px;">
+<li>Matches all issues against receipts</li>
+<li>Calculates cost adjustments</li>
+<li>Posts adjustments to the ledger</li>
+<li>Closes the period — preventing any back-dated inventory transactions</li>
+</ol>
+<p>After closing, you can run an <strong>inventory recalculation</strong> (interim close) without finalising the period. You can also <strong>reverse</strong> a close if corrections are needed.</p>
+<h3>ABC Classification</h3>
+<p>ABC classification categorises inventory by value:</p>
+<ul>
+<li><strong>A items</strong>: ~20% of items, ~80% of total inventory value → count frequently (monthly)</li>
+<li><strong>B items</strong>: ~30% of items, ~15% of value → count quarterly</li>
+<li><strong>C items</strong>: ~50% of items, ~5% of value → count annually</li>
+</ul>
+<p>In D365, you run an ABC classification report that assigns categories based on actual transaction history, then use these categories to set cycle counting frequencies.</p>`,
+    examTips: ['Transfer journals have NO financial posting — they only move quantities. Transfer orders DO have financial posting between sites.', 'Inventory close must be run in date order — you can\'t close March before February.', 'BOM journals are used to manually consume components and report output — similar to a mini production order.'],
+    selfCheck: ['What is the difference between a Transfer Journal and a Transfer Order?', 'What happens during an inventory close?', 'You write off 10 damaged units. Which journal type do you use?'],
+  },
+  {
+    date: '2026-04-03', domain: 'D2', fcDomain: 'D2',
+    title: 'Quality Management — Orders, Associations & Nonconformances',
+    msLink: 'https://learn.microsoft.com/en-us/training/paths/configure-manage-products-inventory-dyn365-supply-chain-mgmt/',
+    msLinkLabel: 'Products & Inventory Learning Path',
+    intro: 'D365 Quality Management ensures that incoming and outgoing goods meet specified standards before they can be used or shipped. Quality Orders trigger testing; Quality Associations automate when those orders are created; Nonconformances track failures.',
+    concepts: [
+      { term: 'Quality Order', def: 'A document that initiates quality testing for a specific inventory lot. Can be created manually or automatically via a Quality Association.' },
+      { term: 'Test Group', def: 'A collection of tests assigned to a quality order — e.g. "Incoming Chemical Tests" might include pH test, viscosity test, colour test.' },
+      { term: 'Quality Association', def: 'A rule that automatically generates Quality Orders when a defined event occurs — e.g. every purchase order receipt for Item A triggers a quality order.' },
+      { term: 'Nonconformance', def: 'A record of a quality failure — what failed, why, and what corrective action was taken. Can be raised against operations, vendors, customers, or internal processes.' },
+      { term: 'Quarantine Order', def: 'Physically isolates suspect inventory by moving it to a designated quarantine warehouse. Inventory is blocked from use until the order is closed.' },
+      { term: 'Batch Disposition Code', def: 'A status code assigned to a batch (e.g. "Available", "Hold", "Scrapped"). Used for batch-tracked items to control usability without blocking all stock.' },
+    ],
+    body: `<h3>Quality Association — How It Works</h3>
+<p>A Quality Association has these key fields:</p>
+<ul>
+<li><strong>Reference type</strong>: Purchase order, Sales order, Production, Inventory, etc.</li>
+<li><strong>Item code</strong>: Specific item, item group, or all items</li>
+<li><strong>Event type</strong>: Product receipt, Packing slip, Report as finished, etc.</li>
+<li><strong>Test group</strong>: Which tests to run</li>
+<li><strong>Acceptable quality level (AQL)</strong>: Sample size and acceptance criteria</li>
+</ul>
+<p>When the triggering event happens (e.g. a purchase receipt is posted), D365 automatically creates a Quality Order. The buyer can't move on until the quality results are entered and the order is validated.</p>
+<h3>Nonconformances & Corrections</h3>
+<p>A nonconformance records: what problem was found, where (item, vendor, operation), and what was done. From a nonconformance you can:</p>
+<ul>
+<li>Create a <strong>correction</strong> — the fix applied</li>
+<li>Create a <strong>related operation</strong> — extra work needed (e.g. rework)</li>
+<li>Issue a <strong>tag</strong> — physical label for quarantined items</li>
+</ul>
+<h3>Quarantine Orders vs. Inventory Blocking</h3>
+<p><strong>Inventory Blocking</strong>: Marks a quantity as blocked in-place (same location, same warehouse). Quick, no physical move required.<br>
+<strong>Quarantine Order</strong>: Generates a warehouse move to a quarantine warehouse. More formal, creates a paper trail, requires a receive step to release.</p>`,
+    examTips: ['Quality Associations are the automation mechanism — without one, quality orders must be created manually.', 'A Quarantine Order always moves inventory to the Quarantine Warehouse defined in the item model group — not just any warehouse.', 'Batch disposition codes only work if the item uses batch tracking (tracking dimension group must have Batch active).'],
+    selfCheck: ['What triggers automatic creation of a Quality Order?', 'What is the difference between Inventory Blocking and a Quarantine Order?', 'A batch of chemicals fails a quality test. You need to isolate it and record the failure. What two D365 features do you use?'],
+  },
+  {
+    date: '2026-04-04', domain: 'D2', fcDomain: 'D2',
+    title: 'Asset Management — Work Orders & Maintenance',
+    msLink: 'https://learn.microsoft.com/en-us/training/paths/configure-manage-products-inventory-dyn365-supply-chain-mgmt/',
+    msLinkLabel: 'Products & Inventory Learning Path',
+    intro: 'Asset Management in D365 SCM manages physical assets — machinery, vehicles, equipment. It tracks maintenance history, schedules preventive work, and manages work orders assigned to technicians.',
+    concepts: [
+      { term: 'Asset', def: 'A physical piece of equipment (e.g. Forklift #7, Conveyor Belt A, CNC Machine 3). Has a type, location, lifecycle state, and maintenance history.' },
+      { term: 'Asset Type', def: 'A category template for assets — defines default maintenance job types, spare parts, and attributes. E.g. "Forklift" asset type.' },
+      { term: 'Work Order', def: 'A document that authorises and tracks maintenance work on an asset. Contains jobs, scheduled dates, assigned workers, parts consumed.' },
+      { term: 'Work Order Job Type', def: 'The type of maintenance task — e.g. "Oil change", "Annual inspection", "Belt replacement". Defines standard duration and required parts.' },
+      { term: 'Maintenance Plan', def: 'A schedule for recurring preventive maintenance — e.g. "Inspect Forklift #7 every 90 days". Automatically creates maintenance rounds.' },
+      { term: 'Functional Location', def: 'A hierarchical representation of where assets are installed — e.g. Plant > Building A > Production Line 1 > Station 3.' },
+    ],
+    body: `<h3>Asset Lifecycle</h3>
+<p>An asset moves through lifecycle states defined in an <strong>Asset Lifecycle Model</strong>:</p>
+<ul>
+<li><strong>Created</strong> → <strong>Active</strong> → <strong>Under Repair</strong> → <strong>Active</strong> → <strong>Scrapped</strong></li>
+</ul>
+<p>Lifecycle states control what you can do with an asset. You cannot create a new work order on a "Scrapped" asset. States are fully configurable — you define the allowed transitions.</p>
+<h3>Preventive vs. Reactive Maintenance</h3>
+<ul>
+<li><strong>Preventive (scheduled)</strong>: Driven by Maintenance Plans and Maintenance Rounds. The system creates work orders automatically based on time intervals or usage counters (e.g. hours run, km driven).</li>
+<li><strong>Reactive (breakdown)</strong>: Triggered by a Maintenance Request from an operator who noticed a fault. Supervisor reviews and converts to a Work Order.</li>
+</ul>
+<h3>Work Order Scheduling & Capacity</h3>
+<p>Work orders are assigned to <strong>maintenance workers</strong> (with skills and calendar). The system has a <strong>capacity view</strong> showing worker availability — you can see who is free and schedule accordingly. Work orders consume <strong>hours</strong> (from workers) and <strong>items</strong> (spare parts from inventory).</p>
+<h3>Asset Loans</h3>
+<p>If an asset (e.g. a company vehicle) is loaned out, you create an <strong>Asset Loan</strong> record — tracks who has it, from/to dates, and triggers a return reminder. Prevents a loaned asset from being scheduled for maintenance while it's off-site.</p>`,
+    examTips: ['Maintenance Plans create Maintenance Rounds; Rounds are then scheduled into Work Orders. It\'s a 3-step process.', 'Functional Locations can be hierarchical — an asset can be "installed at" a functional location, making it easy to see all assets in a given area.', 'Work order lifecycle states (Active, In Progress, Finished, Closed) must be configured — similar to asset lifecycle states.'],
+    selfCheck: ['What is the difference between a Maintenance Plan and a Maintenance Request?', 'An operator notices a machine making a strange noise. What is the correct D365 process?', 'Why would you use Functional Locations instead of just a warehouse location?'],
+  },
+  {
+    date: '2026-04-07', domain: 'D3', fcDomain: 'D3',
+    title: 'Procurement — Purchase Orders & Vendor Management',
+    msLink: 'https://learn.microsoft.com/en-us/training/paths/configure-manage-procurement-vendors-dyn365-supply-chain-mgmt/',
+    msLinkLabel: 'Procurement & Vendors Learning Path',
+    intro: 'Domain 3 covers how D365 manages buying from vendors (procurement) and selling to customers (sales). Today focuses on the procurement side — creating vendors, the purchase order lifecycle, and key configuration.',
+    concepts: [
+      { term: 'Vendor', def: 'A supplier of goods/services. In D365, vendors are legal entities with bank accounts, contact details, payment terms, and an associated currency.' },
+      { term: 'Purchase Requisition', def: 'An internal request to buy something — raised by an employee, approved by a manager, then converted to a PO. Optional but common in organisations with approval controls.' },
+      { term: 'Request for Quotation (RFQ)', def: 'A formal document sent to multiple vendors asking for price quotes. Responses are compared and the winning bid is accepted, creating a PO.' },
+      { term: 'Purchase Order (PO)', def: 'The formal document sent to a vendor to buy goods/services. Goes through status: Draft → Confirmed → Partially received → Invoiced.' },
+      { term: 'Product Receipt', def: 'Records the physical arrival of goods against a PO. Updates inventory on-hand. Must happen before the vendor invoice can be matched.' },
+      { term: 'Purchase Agreement', def: 'A long-term commitment to buy a specific quantity or value from a vendor over time, at agreed pricing. Individual POs reference and fulfill the agreement.' },
+    ],
+    body: `<h3>The Procurement Cycle</h3>
+<p>The standard flow in D365:</p>
+<ol style="margin-left:20px; margin-bottom:10px;">
+<li><strong>Purchase Requisition</strong> (optional) — internal request, approval workflow</li>
+<li><strong>RFQ</strong> (optional) — send to vendors, compare bids, accept best offer</li>
+<li><strong>Purchase Order</strong> — created manually or from requisition/RFQ/master plan</li>
+<li><strong>Confirmation</strong> — sends to vendor; PO status = Confirmed</li>
+<li><strong>Product Receipt</strong> — goods arrive; inventory increases; packing slip posted</li>
+<li><strong>Invoice</strong> — vendor invoice matched to PO and product receipt (3-way match)</li>
+<li><strong>Payment</strong> — in Accounts Payable</li>
+</ol>
+<h3>Over- and Under-Deliveries</h3>
+<p>Vendors don't always deliver exactly what was ordered. D365 lets you configure tolerances:</p>
+<ul>
+<li><strong>Over-delivery %</strong>: Accept up to X% more than ordered without rejecting</li>
+<li><strong>Under-delivery %</strong>: Accept a delivery short by up to X% and close the PO line</li>
+</ul>
+<p>These are set on the PO line or in item default order settings.</p>
+<h3>Procurement Categories & Policies</h3>
+<p><strong>Procurement categories</strong> group what you buy (not who you buy from). They're used in purchase requisitions for non-stock purchases (e.g. "Office Supplies") and in procurement policies. A <strong>purchasing policy</strong> can enforce: who can create requisitions, what items need 3 quotes, spending limits per category.</p>
+<h3>Vendor Collaboration</h3>
+<p>The Vendor Collaboration portal lets vendors log into a limited view of D365 to: view their POs, confirm orders, submit invoices, and respond to RFQs — reducing email back-and-forth.</p>`,
+    examTips: ['Product receipt ≠ invoice. The product receipt posts to inventory; the invoice posts to AP/ledger. The 3-way match reconciles PO, product receipt, and invoice.', 'Purchase Agreements have two types: "Quantity commitment" (commit to buy X units) and "Value commitment" (commit to spend £X).', 'Vendor returns use a Return Order — a negative PO that creates a return material authorisation (RMA).'],
+    selfCheck: ['What is the difference between a Purchase Requisition and a Purchase Order?', 'A vendor delivers 110 units when only 100 were ordered. What D365 setting controls whether this is accepted?', 'What is a 3-way match?'],
+  },
+  {
+    date: '2026-04-08', domain: 'D3', fcDomain: 'D3',
+    title: 'Landed Cost & Sales Processes',
+    msLink: 'https://learn.microsoft.com/en-us/training/paths/configure-manage-procurement-vendors-dyn365-supply-chain-mgmt/',
+    msLinkLabel: 'Procurement & Vendors Learning Path',
+    intro: 'Landed Cost tracks the full cost of importing goods — freight, duty, insurance. Sales processes mirror procurement but in reverse. Today covers both, plus intercompany orders and customer rebates.',
+    concepts: [
+      { term: 'Landed Cost', def: 'The module that tracks a shipment (Voyage) from the point of origin to your warehouse, including all associated costs.' },
+      { term: 'Voyage', def: 'A D365 record representing a shipment journey. One voyage can contain multiple purchase orders packed into shipping containers.' },
+      { term: 'Cost Type Code', def: 'Categories for additional costs on a voyage — Freight, Insurance, Duty, Port Handling. Each maps to a ledger account.' },
+      { term: 'Auto-cost', def: 'A rule that automatically adds a cost to a voyage based on shipping route, container type, or vendor. Removes manual data entry.' },
+      { term: 'ATP (Available to Promise)', def: 'Tells a sales agent when stock will be available based on current inventory + scheduled receipts − existing commitments.' },
+      { term: 'CTP (Capable to Promise)', def: 'Extends ATP by also checking production capacity — can we actually manufacture what\'s needed by the required date?' },
+    ],
+    body: `<h3>Landed Cost — How It Works</h3>
+<p>Scenario: You import 500 units from China. The PO is £50,000 but to get those units to your warehouse costs an additional £5,000 in freight + £2,000 duty + £500 insurance = £7,500 total landed cost.</p>
+<ol style="margin-left:20px; margin-bottom:10px;">
+<li>Create a <strong>Voyage</strong> and add the purchase order to it</li>
+<li>Add a <strong>Shipping Container</strong> (or folio) to the voyage</li>
+<li>Enter or auto-calculate costs by cost type (Freight, Duty, Insurance)</li>
+<li>D365 <strong>distributes costs</strong> proportionally across the PO lines (by value, weight, or volume)</li>
+<li>When goods arrive, the landed cost is included in the inventory cost</li>
+</ol>
+<h3>Sales Process — Key Points</h3>
+<ul>
+<li><strong>Sales Quotation → Sales Order → Packing Slip → Invoice</strong></li>
+<li><strong>Sales Agreement</strong>: Long-term commitment from a customer to buy a certain quantity at agreed price — equivalent of a Purchase Agreement on the buy side</li>
+<li><strong>Customer Rebates</strong>: Retrospective discounts paid to customers after reaching a spend threshold — configured as rebate programs, accrued automatically</li>
+<li><strong>Delivery Schedule</strong>: Split a single sales order line into multiple delivery dates — e.g. 100 units: 50 on 1 April, 50 on 1 May</li>
+</ul>
+<h3>Intercompany Orders</h3>
+<p>When Company A (UK) sells to Company B (Germany) and both are in the same D365 tenant, an <strong>intercompany relationship</strong> automatically creates a mirrored document in Company B. Company A's sales order → Company B's purchase order. This eliminates double-entry and ensures both sets of books are in sync.</p>`,
+    examTips: ['Landed Cost requires specific parameters to be configured first — voyage statuses, cost type codes, and auto-cost rules.', 'ATP is real-time; CTP actually runs master planning in the background to check feasibility — it\'s slower but more accurate.', 'Intercompany orders work across legal entities in the SAME D365 environment — not different systems.'],
+    selfCheck: ['A voyage has 3 purchase orders. How does D365 allocate the freight cost across them?', 'What is the difference between a Sales Agreement and a Sales Order?', 'When would you use CTP instead of ATP?'],
+  },
+  {
+    date: '2026-04-09', domain: 'D4', fcDomain: 'D4',
+    title: 'Warehouse Management Setup — Sites, Locations & Directives',
+    msLink: 'https://learn.microsoft.com/en-us/training/paths/configure-work-warehouse-management-dyn365-supply-chain-mgmt/',
+    msLinkLabel: 'Warehouse Management Learning Path',
+    intro: 'Domain 4 is the largest practical topic. Advanced WMS in D365 turns a warehouse into a directed, optimised operation. Setup starts with physical structure — sites, warehouses, zones, and locations — then adds the rules that drive where things go.',
+    concepts: [
+      { term: 'Site', def: 'Top level of the warehouse hierarchy — a physical premises (factory, distribution centre). A legal entity can have multiple sites.' },
+      { term: 'Warehouse', def: 'Belongs to a site. A WMS-enabled warehouse has locations, directives, waves, and supports mobile device operations.' },
+      { term: 'Zone', def: 'A grouping of locations within a warehouse — e.g. "Receiving", "Bulk Storage", "Pick Face", "Staging". Used in location directives.' },
+      { term: 'Location', def: 'The smallest addressable unit of storage — an aisle/bay/level/bin (e.g. A-01-02-01). Has a location profile defining what can be stored there.' },
+      { term: 'Location Profile', def: 'Settings for a location type: allow mixed items? allow mixed batches? allow inventory status mix? defines picking and putaway rules.' },
+      { term: 'Location Directive', def: 'A rule that tells the system WHERE to put away received goods, or WHERE to pick from for an outbound order.' },
+    ],
+    body: `<h3>Location Directive — Structure</h3>
+<p>A location directive has a <strong>header</strong> and one or more <strong>lines</strong> and <strong>actions</strong>:</p>
+<ul>
+<li><strong>Header</strong>: Work order type (Purchase order, Sales order, Transfer, etc.) + direction (Put / Pick)</li>
+<li><strong>Lines</strong>: Filter by quantity range, unit of measure, etc.</li>
+<li><strong>Actions</strong>: The actual location strategy — Fixed location, Empty location, Consolidate, FIFO, etc.</li>
+</ul>
+<p>The system tries each action in sequence until it finds a valid location.</p>
+<h3>Work Templates</h3>
+<p>A <strong>Work Template</strong> defines the structure of work created for workers. For a sales pick, a typical template is:</p>
+<ol style="margin-left:20px; margin-bottom:10px;">
+<li>Pick from Pick Face (location directive finds the location)</li>
+<li>Put to Staging Area</li>
+</ol>
+<p>More complex templates might include: Pick bulk → Move to pick face → Pick from pick face → Put to door. Work templates and location directives work together — the template says "do a Pick step", the directive says "pick from location A-03-01".</p>
+<h3>Work Policies</h3>
+<p>Work policies define when <em>NOT</em> to create warehouse work. Example: for certain items or locations, you don't want a directed putaway work order — workers just put it wherever. Work policies can bypass work creation for specific item/location/work order type combinations.</p>`,
+    examTips: ['Location directives are direction-specific: you have one set for "Put" and a separate set for "Pick" — they don\'t share rules.', 'Work order type on the directive must match exactly — a Purchase Order directive won\'t fire for a Transfer Order.', 'Location profiles control whether a location allows mixed items. If "allow mixed items" is off, once an item is stored there, nothing else can go in.'],
+    selfCheck: ['What is the difference between a Zone and a Location?', 'What are the two components of a location directive (below the header)?', 'When would you configure a Work Policy to suppress work creation?'],
+  },
+  {
+    date: '2026-04-10', domain: 'D4', fcDomain: 'D4',
+    title: 'Wave Processing, Replenishment & Cross Docking',
+    msLink: 'https://learn.microsoft.com/en-us/training/paths/configure-work-warehouse-management-dyn365-supply-chain-mgmt/',
+    msLinkLabel: 'Warehouse Management Learning Path',
+    intro: 'Waves are how D365 batches outbound demand into warehouse work. Replenishment moves stock from bulk storage to pick faces when they run low. Cross docking bypasses storage entirely.',
+    concepts: [
+      { term: 'Wave', def: 'A processing batch that groups sales/transfer/production orders and runs methods to create warehouse work. Can be manual or auto-triggered.' },
+      { term: 'Wave Template', def: 'Defines which orders to include in a wave (e.g. all sales orders for Site 1, Carrier = DHL, shipping date = today) and which wave methods to run.' },
+      { term: 'Wave Method', def: 'A step in wave processing: Wavify (select demand), Create load, Containerization, Replenishment, Create work. Methods run in sequence.' },
+      { term: 'Replenishment', def: 'Automatically moves stock from bulk/reserve locations to pick-face locations when the pick face falls below a minimum threshold.' },
+      { term: 'Cross Docking', def: 'Receiving inbound goods and routing them directly to an outbound staging location without putting them into storage first.' },
+      { term: 'Load', def: 'Groups orders that will ship together (same truck/container). Loads sit between orders and waves; can be planned manually or by the load planning workbench.' },
+    ],
+    body: `<h3>Wave Processing — Step by Step</h3>
+<ol style="margin-left:20px; margin-bottom:10px;">
+<li>Sales orders are released to the warehouse (status changes to "Released to warehouse")</li>
+<li>Orders are added to a Wave (manually or automatically based on wave template criteria)</li>
+<li>Wave is processed — methods run in order:
+  <ul>
+    <li>Replenishment check — is the pick face stocked enough?</li>
+    <li>Containerization — should items be packed into containers?</li>
+    <li>Work creation — generates Pick + Put work records</li>
+  </ul>
+</li>
+<li>Work is assigned to workers (via mobile app) who scan locations and confirm picks</li>
+</ol>
+<h3>Replenishment Types</h3>
+<ul>
+<li><strong>Wave demand replenishment</strong>: Triggered during wave processing when a pick location has insufficient stock</li>
+<li><strong>Min/Max replenishment</strong>: Triggered by a scheduled job when a location falls below minimum quantity</li>
+<li><strong>Slot-based replenishment</strong>: Pre-calculates what each pick slot needs for a shift and tops it up in advance</li>
+</ul>
+<h3>Cycle Counting</h3>
+<p>Cycle counting is the preferred alternative to full physical inventory. In D365:</p>
+<ul>
+<li>Create <strong>Cycle count work</strong> — targeted at specific locations, items, or zones</li>
+<li>Workers scan locations and enter counted quantities on the mobile app</li>
+<li>If count differs from system qty, the system prompts for confirmation before adjusting</li>
+<li>Cycle count thresholds can auto-trigger a recount if the variance exceeds a tolerance</li>
+</ul>`,
+    examTips: ['Auto-release of waves requires the wave template to have "Automate wave creation" and "Automate wave processing" enabled.', 'Cross docking requires a matching inbound PO/transfer and an outbound order at the same time — the system links them during wave processing.', 'Containerization during wave creates shipment containers and assigns items to them — used for box packing rules.'],
+    selfCheck: ['What is the difference between a Wave Template and a Work Template?', 'When does Min/Max replenishment trigger vs. Wave demand replenishment?', 'What happens to an order if there is insufficient stock to fulfil it during wave processing?'],
+  },
+  {
+    date: '2026-04-11', domain: 'D4', fcDomain: 'D4',
+    title: 'Transportation Management — Carriers, Routes & Freight',
+    msLink: 'https://learn.microsoft.com/en-us/training/paths/configure-work-transportation-mgmt-dyn365-supply-chain-mgmt/',
+    msLinkLabel: 'Transportation Management Learning Path',
+    intro: 'Transportation Management (TMS) in D365 handles planning, executing, and reconciling shipments. It manages relationships with freight carriers, rate shopping, route planning, and freight invoice matching.',
+    concepts: [
+      { term: 'Shipping Carrier', def: 'A company that transports goods (DHL, FedEx, own fleet). Set up with service levels, tracking URLs, and rate engines.' },
+      { term: 'Carrier Service', def: 'A specific service tier of a carrier — e.g. DHL Express, DHL Economy. Each service has its own transit times and rates.' },
+      { term: 'Route', def: 'The path a shipment takes from origin to destination, potentially with intermediate hubs. Route plans define possible routes and their costs.' },
+      { term: 'Rate Engine', def: 'A calculation engine that determines freight cost. Can be built-in (flat rate, per km, per kg) or external (carrier API integration).' },
+      { term: 'Freight Bill', def: 'The invoice from the carrier for transportation services. Must be reconciled against the system-calculated freight amount.' },
+      { term: 'Dock Appointment Scheduling', def: 'Manages inbound/outbound dock door appointments — prevents congestion by scheduling which truck arrives at which door and when.' },
+    ],
+    body: `<h3>TMS Workflow</h3>
+<ol style="margin-left:20px; margin-bottom:10px;">
+<li><strong>Load planning</strong>: Group orders into loads (same destination, same carrier)</li>
+<li><strong>Rate shopping</strong>: Run the rate engine to find the cheapest/fastest carrier for each load</li>
+<li><strong>Appointment scheduling</strong>: Book a dock slot</li>
+<li><strong>Shipment confirmation</strong>: Confirm the shipment is dispatched</li>
+<li><strong>Freight invoice</strong>: Carrier submits invoice; system auto-matches or flags discrepancies</li>
+<li><strong>Reconciliation</strong>: Approve matched invoices; dispute unmatched ones</li>
+</ol>
+<h3>Route Plans & Guides</h3>
+<p>A <strong>Route Plan</strong> defines possible paths for a shipment. A <strong>Route Guide</strong> automatically assigns a route and carrier to a load based on criteria (origin, destination, weight, item class). When a load is created, the route guide fires and assigns the best route — no manual intervention needed.</p>
+<h3>Freight Reconciliation</h3>
+<p>Two methods:</p>
+<ul>
+<li><strong>Manual</strong>: A freight coordinator reviews each carrier invoice against the system-calculated amount and approves or disputes line by line.</li>
+<li><strong>Automatic</strong>: The system matches invoices within a configured tolerance (e.g. ±5%). Matched invoices are auto-approved; only discrepancies require manual review.</li>
+</ul>`,
+    examTips: ['Rate engines and route guides are the automation layer — without them, every shipment requires manual carrier selection.', 'Dock appointment scheduling is a separate feature that must be enabled on the warehouse; it integrates with TMS loads.', 'Freight bills are separate from vendor invoices — they go through a freight reconciliation process, not AP invoice matching.'],
+    selfCheck: ['What is the difference between a Route Plan and a Route Guide?', 'What does "rate shopping" mean in TMS?', 'When would you use automatic freight reconciliation vs. manual?'],
+  },
+  {
+    date: '2026-04-14', domain: 'D4', fcDomain: 'D4',
+    title: 'Warehouse Management Mobile App',
+    msLink: 'https://learn.microsoft.com/en-us/training/paths/configure-work-warehouse-management-dyn365-supply-chain-mgmt/',
+    msLinkLabel: 'Warehouse Management Learning Path',
+    intro: 'The Warehouse Management mobile app is what workers use on handheld devices to execute warehouse tasks — receiving, putaway, picking, packing, counting. The entire worker experience is configured in D365 via menus, menu items, and step configurations.',
+    concepts: [
+      { term: 'Mobile Device Menu', def: 'The top-level navigation structure for workers — a list of categories. E.g. "Inbound", "Outbound", "Inventory". Workers see menus based on their role.' },
+      { term: 'Menu Item', def: 'A specific task within a menu — e.g. "Receive PO", "Sales Picking", "Cycle Count". Each item links to a work creation mode or inquiry.' },
+      { term: 'Work Creation Mode', def: '"Use existing work" — the worker performs work already generated by the wave. "User-directed" — the worker decides what to do. "System-directed" — system assigns work.' },
+      { term: 'Detour', def: 'Allows a worker to pause their current task, complete a secondary task (e.g. create a license plate, look up inventory), then return to exactly where they were.' },
+      { term: 'Warehouse Worker', def: 'A D365 user configured as a warehouse worker — linked to a D365 user account, assigned to a warehouse, and given a mobile device user ID and password.' },
+      { term: 'Display Settings', def: 'Control what fields the mobile app shows on each step — which fields are required, which are hidden, which have a default value.' },
+    ],
+    body: `<h3>Configuring a Menu Item</h3>
+<p>For each mobile device menu item you configure:</p>
+<ul>
+<li><strong>Mode</strong>: Work (perform existing work) vs. Activity (create movement, adjustment, etc.)</li>
+<li><strong>Work order type</strong>: Purchase orders, Sales orders, Transfers, etc.</li>
+<li><strong>Directed by</strong>: System directed (system queues work for worker) or User directed (worker chooses)</li>
+<li><strong>License plate grouping</strong>: Whether to group multiple picks onto one LP</li>
+<li><strong>Work confirmation</strong>: Required scans — Location, LP, item, quantity</li>
+</ul>
+<h3>Detours — Practical Example</h3>
+<p>A worker is mid-pick on a sales order. They notice the location has a wrong item stored there (from a previous error). Without a detour, they'd have to abandon the pick and navigate separately to correct it. With a <strong>detour</strong> configured on that step, they can tap "Report discrepancy", fix it, and the app returns them to the exact same pick step — no lost context.</p>
+<h3>Installing the App</h3>
+<p>The Warehouse Management app connects to D365 via Azure AD authentication or connection strings. Steps: download app from app store, add a connection (environment URL, Azure app registration client ID/secret), and log in with the warehouse worker credentials (not the D365 user password — a separate mobile device PIN).</p>`,
+    examTips: ['Warehouse workers use a separate mobile device user ID — NOT their Windows/Azure AD login — for day-to-day app use.', 'Detours are configured at the mobile device step level — not every step supports detours; you must explicitly enable them.', 'Display settings override what fields are shown — hiding unnecessary prompts speeds up workers by reducing scan steps.'],
+    selfCheck: ['What is the difference between "user-directed" and "system-directed" work on a mobile device menu item?', 'A worker needs to look up inventory levels mid-pick without losing their place. What feature enables this?', 'How does a new worker log into the Warehouse Management mobile app?'],
+  },
+  {
+    date: '2026-04-15', domain: 'D4', fcDomain: 'D4',
+    title: 'D4 Review — Labels, Inbound/Outbound & Key Scenarios',
+    msLink: 'https://learn.microsoft.com/en-us/training/paths/configure-work-warehouse-management-dyn365-supply-chain-mgmt/',
+    msLinkLabel: 'Warehouse Management Learning Path',
+    intro: 'A consolidation day covering labels, the inbound/outbound process flows end-to-end, and common exam scenarios for D4. D4 is 20–25% of the exam so it deserves deep confidence.',
+    concepts: [
+      { term: 'Wave Label', def: 'A label printed during wave processing — e.g. a shipping label for a carton. Configured in wave label layouts and assigned to wave label types.' },
+      { term: 'License Plate Label', def: 'A scannable label on a pallet or container identifying its LP number. Printed when an LP is created during receiving or putaway.' },
+      { term: 'GS1 Label', def: 'A standardised barcode format using GS1 application identifiers (AIs). Allows a single barcode to encode item number, batch, quantity, and serial simultaneously.' },
+      { term: 'Inbound Process', def: 'PO created → goods arrive → worker scans on mobile app → item arrival / license plate receiving → putaway work created → worker puts to location.' },
+      { term: 'Outbound Process', def: 'Sales order → release to warehouse → wave processing → pick work → packing → shipment confirmation → dispatch.' },
+      { term: 'Packing Station', def: 'A D365 interface where packers scan items into cartons/containers, print packing slips and shipping labels, and close packed containers.' },
+    ],
+    body: `<h3>Inbound in Detail</h3>
+<p>Two inbound receiving options:</p>
+<ul>
+<li><strong>License plate receiving</strong>: Worker scans an LP barcode from the delivery; D365 looks up what's on the LP and auto-populates the receipt. Fastest method.</li>
+<li><strong>Purchase order line receiving</strong>: Worker selects the PO and enters received quantities manually — no LP needed.</li>
+</ul>
+<p>After receiving, the system creates <strong>putaway work</strong> — a Pick (from receiving dock) + Put (to a storage location) pair. The location directive finds the best storage location.</p>
+<h3>Inventory Status in the Outbound Flow</h3>
+<p>The <strong>Inventory Status</strong> dimension can block picking. If stock is marked as "QC Hold", the location directive will skip it and find "Available" stock instead. This is a powerful quality gate — receiving staff set status at receiving; QC releases it once approved.</p>
+<h3>Common Exam Scenarios (D4)</h3>
+<ul>
+<li><em>"Orders are not creating pick work"</em> → Check: Wave template has work creation method? Work template exists for that work order type? Location directive resolves a valid location?</li>
+<li><em>"Worker cannot see items on the mobile app"</em> → Check: Mobile device menu assigned to worker? Work is in "Open" status and assigned to correct warehouse?</li>
+<li><em>"System puts items in wrong zone"</em> → Check: Location directive sequence, zone filter, item filter on directive lines and actions.</li>
+</ul>`,
+    examTips: ['GS1 barcodes can encode multiple data elements — the exam may describe a scenario requiring a single scan to capture item + batch + qty.', 'Work cannot be performed if its status is "Cancelled" or if the user doesn\'t have the right mobile device menu access.', 'Containerization during wave is distinct from the packing station — containerization plans what goes in which box; the packing station executes it physically.'],
+    selfCheck: ['List the steps in the outbound WMS process from sales order to dispatch.', 'What is the purpose of GS1 label segments?', 'Work is not being created for sales orders. Name 3 possible root causes.'],
+  },
+  {
+    date: '2026-04-16', domain: 'D5', fcDomain: 'D5',
+    title: 'Master Planning — Coverage Groups & Parameters',
+    msLink: 'https://learn.microsoft.com/en-us/training/paths/master-planning-supply-chain-management/',
+    msLinkLabel: 'Master Planning Learning Path',
+    intro: 'Master Planning (MRP in traditional ERP) calculates what needs to be bought or produced, and when, to meet demand. It is automatic, forward-looking, and relies on coverage groups and parameters to generate planned orders.',
+    concepts: [
+      { term: 'Master Plan', def: 'The plan to be calculated — defines the planning horizon and data sources. You can have multiple plans (e.g. Static for stability, Dynamic for real-time).' },
+      { term: 'Coverage Group', def: 'Settings that control how supply is calculated for assigned items: coverage code, positive/negative days, time fences, safety margins.' },
+      { term: 'Coverage Code', def: 'The replenishment strategy: Requirement (order exactly what\'s needed), Period (batch demand into time buckets), Min/Max (replenish when below minimum).' },
+      { term: 'Item Coverage', def: 'Overrides the coverage group settings for a specific item — e.g. Item A generally uses the default group but has a special lead time override.' },
+      { term: 'Planning Horizon', def: 'How far into the future master planning calculates supply needs. Set in the master plan or coverage time fence.' },
+      { term: 'Planned Order', def: 'A suggested purchase, production, or transfer order generated by master planning. Must be confirmed/firmed to become an actual order.' },
+    ],
+    body: `<h3>How Master Planning Works</h3>
+<p>Step by step:</p>
+<ol style="margin-left:20px; margin-bottom:10px;">
+<li>System reads all <strong>demand</strong>: sales orders, production component requirements, safety stock targets, forecasts</li>
+<li>System reads all <strong>supply</strong>: on-hand inventory, open purchase orders, production orders, transfer orders</li>
+<li>For each item, net demand = demand − supply. If net demand > 0, planning generates a <strong>Planned Order</strong></li>
+<li>Planned orders are offset by lead time — if needed by 1 May and lead time = 14 days, order must be placed by 17 April</li>
+<li>Planner reviews planned orders, accepts or adjusts, then "firms" them → converts to real PO/Production Order</li>
+</ol>
+<h3>Coverage Codes in Practice</h3>
+<ul>
+<li><strong>Requirement</strong>: One planned order per demand requirement. If you have 3 separate sales orders for Item A, you get 3 separate planned POs. Precise but can create many small orders.</li>
+<li><strong>Period</strong>: Batches all demand within a time bucket (weekly, monthly) into one order. Reduces order frequency at the cost of carrying more inventory.</li>
+<li><strong>Min/Max</strong>: Always keep stock between minimum and maximum levels. Planned order triggers when on-hand falls below minimum; orders up to maximum.</li>
+</ul>
+<h3>Static vs. Dynamic Plans</h3>
+<p><strong>Static plan</strong>: Run on a schedule (nightly). Used as a stable reference for planners — doesn't change throughout the day as orders are entered.<br>
+<strong>Dynamic plan</strong>: Updated immediately when any change occurs (new sales order, PO cancelled, BOM changed). Used for real-time operational decisions like ATP checks.</p>`,
+    examTips: ['Planned orders are SUGGESTIONS — they do nothing until firmed. Firming converts them to real purchase orders, production orders, or transfer orders.', 'Positive days: prevents creating a new order if existing supply already covers demand within X days into the future.', 'Negative days: if existing supply is X days late (in the past), planning still uses it rather than creating a new order.'],
+    selfCheck: ['What is the difference between the Static Master Plan and Dynamic Master Plan?', 'A planner wants to batch all demand for Item B into weekly orders. Which coverage code should they use?', 'What does "firming" a planned order do?'],
+  },
+  {
+    date: '2026-04-17', domain: 'D5', fcDomain: 'D5',
+    title: 'Action Messages, Time Fences & Safety Stock',
+    msLink: 'https://learn.microsoft.com/en-us/training/paths/master-planning-supply-chain-management/',
+    msLinkLabel: 'Master Planning Learning Path',
+    intro: 'After master planning runs, it doesn\'t just create new orders — it also suggests optimisations for existing orders via Action Messages. Time Fences control what planning is allowed to change. Safety Stock ensures a buffer is always maintained.',
+    concepts: [
+      { term: 'Action Message', def: 'A system-generated suggestion to a planner: advance an order, postpone it, increase or decrease its quantity, or cancel it altogether.' },
+      { term: 'Advance', def: 'Action message type: "Move this PO earlier — demand is arriving sooner than the current PO receipt date."' },
+      { term: 'Postpone', def: 'Action message type: "Push this PO out — the demand it was covering has moved to a later date."' },
+      { term: 'Freeze Fence', def: 'A time period (e.g. 7 days) within which planning will NOT change or delete planned orders. Protects near-term execution from constant replanning.' },
+      { term: 'Safety Margin', def: 'An extra buffer time added to lead time for safety. Receipt margin = buffer after delivery. Reorder margin = buffer before reordering. Issue margin = buffer before using stock.' },
+      { term: 'Safety Stock Journal', def: 'Calculates statistically optimal safety stock levels based on historical demand variability and desired service level. Results are written to item coverage as minimum quantities.' },
+    ],
+    body: `<h3>Action Messages in Practice</h3>
+<p>After planning runs, a planner opens the <strong>Action Messages</strong> form. They see, for example:</p>
+<ul>
+<li>PO #12345 for 100 units: <strong>Advance by 3 days</strong> (customer pulled in their delivery date)</li>
+<li>PO #12346 for 50 units: <strong>Postpone by 10 days</strong> (project delayed)</li>
+<li>PO #12347 for 200 units: <strong>Cancel</strong> (the sales order it was covering was cancelled)</li>
+</ul>
+<p>The planner can accept, modify, or ignore each action. Accepting updates the actual order automatically.</p>
+<h3>Time Fences</h3>
+<ul>
+<li><strong>Coverage time fence</strong>: How far ahead demand is considered in the plan. Demand beyond this horizon is ignored.</li>
+<li><strong>Explosion time fence</strong>: How far ahead BOM structures are exploded into component requirements.</li>
+<li><strong>Freeze (action) fence</strong>: Within this period, planning doesn\'t create new planned orders or change existing ones. Protects short-term execution.</li>
+</ul>
+<h3>Period Templates</h3>
+<p>Used with the "Period" coverage code. A period template defines variable-length periods — you can have daily buckets for the first 2 weeks, then weekly buckets for the next 6 weeks. This balances short-term precision with long-term efficiency.</p>
+<h3>Supply Schedule Form</h3>
+<p>The <strong>Supply Schedule</strong> is a grid view showing an item's supply and demand over time — on-hand, receipts (POs/production orders), and issues (sales orders/production requirements) per time bucket. Planners use it to visually spot gaps and surpluses before they become problems.</p>`,
+    examTips: ['The freeze fence prevents churn — without it, every new sales order would instantly trigger changes to near-term POs, making execution impossible.', 'Safety margins are DIFFERENT from safety stock: safety margins add time buffers to lead time; safety stock adds a quantity buffer.', 'The Safety Stock Journal is a batch job — it calculates based on historical data and WRITES to item coverage. Planners should review results before accepting.'],
+    selfCheck: ['A planner receives an "Advance" action message. What does it mean and what caused it?', 'What is the purpose of the Freeze Time Fence?', 'What is the difference between a Safety Margin and Safety Stock?'],
+  },
+  {
+    date: '2026-04-18', domain: 'D5', fcDomain: 'D5',
+    title: 'D5 Review + Full Exam Preparation',
+    msLink: 'https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/mb-330',
+    msLinkLabel: 'MB-330 Official Study Guide',
+    intro: 'Final domain review + exam strategy. Use this day to solidify Master Planning concepts and build your exam-day confidence. You have read all 5 domains — now it\'s about connecting the dots.',
+    concepts: [],
+    body: `<h3>Master Planning — Recall Exercise</h3>
+<details style="cursor:pointer; margin-bottom:14px;">
+<summary style="font-weight:700; color:var(--blue); padding:8px; background:var(--blue-light); border-radius:6px;">Q: What triggers a planned order?</summary>
+<p style="padding:8px; background:#f9f9f9; border-radius:6px;">Net demand > 0 after subtracting on-hand + scheduled receipts. The coverage code determines how demand is batched or treated.</p>
+</details>
+<details style="cursor:pointer; margin-bottom:14px;">
+<summary style="font-weight:700; color:var(--blue); padding:8px; background:var(--blue-light); border-radius:6px;">Q: What is the difference between positive and negative days?</summary>
+<p style="padding:8px; background:#f9f9f9; border-radius:6px;">Positive days: look X days ahead for existing supply before creating new orders. Negative days: accept supply that is X days late (in the past) before creating a new order.</p>
+</details>
+<details style="cursor:pointer; margin-bottom:14px;">
+<summary style="font-weight:700; color:var(--blue); padding:8px; background:var(--blue-light); border-radius:6px;">Q: When would you use Period coverage code vs. Requirement?</summary>
+<p style="padding:8px; background:#f9f9f9; border-radius:6px;">Period: when you want to batch orders (e.g. weekly supplier runs) to reduce order count. Requirement: when each demand needs its own order and timing precision matters.</p>
+</details>
+<h3>Cross-Domain Exam Tips</h3>
+<ul>
+<li><strong>Sequence matters</strong>: Products (D1) must be set up before inventory can be tracked (D2). Procurement (D3) needs vendors + products. WMS (D4) needs dimension groups + reservation hierarchies from D1.</li>
+<li><strong>Read carefully</strong>: Exam questions often describe a business problem — identify which D365 feature solves it. Don't confuse similar-sounding features (e.g. Quality Order vs. Quarantine Order).</li>
+<li><strong>Configuration over navigation</strong>: The exam tests WHERE to configure things, not how to click through screens.</li>
+<li><strong>High-weight domains</strong>: D1 (25–30%) + D4 (20–25%) together = nearly half the exam. D2 (20–25%) is a close third. Prioritise these if short on time.</li>
+</ul>
+<h3>Final 5 Weeks — Suggested Routine</h3>
+<ul>
+<li><strong>Daily</strong>: 15–20 min flashcards (use Due Today filter)</li>
+<li><strong>Weekly</strong>: One full practice scenario per domain</li>
+<li><strong>May 20–25</strong>: Past exam questions from MeasureUp or official Microsoft practice assessment</li>
+</ul>`,
+    examTips: ['Take the free Microsoft Practice Assessment at learn.microsoft.com — it uses real exam-style questions.', 'Score 700+ out of 1000 to pass. That\'s roughly 70% correct — aim for 80%+ in practice.', 'Time management: 100 minutes for ~50–60 questions = ~1.5 min per question. Flag hard ones and return.'],
+    selfCheck: [],
+  },
+];
+
+// ============================================================
+//  LESSON RENDERING
+// ============================================================
+let currentLessonIdx = 0;
+let currentLessonDomain = 'D1';
+
+function buildLessonSelect() {
+  const sel = document.getElementById('lesson-select');
+  sel.innerHTML = '';
+  LESSONS.forEach((l, i) => {
+    const d = new Date(l.date);
+    const label = d.toLocaleDateString('en-GB', {day:'numeric', month:'short'}) + ' — ' + l.title;
+    sel.innerHTML += `<option value="${i}">${label}</option>`;
+  });
+  sel.value = currentLessonIdx;
+}
+
+function loadLesson(idx) {
+  currentLessonIdx = parseInt(idx);
+  const l = LESSONS[currentLessonIdx];
+  if (!l) return;
+  currentLessonDomain = l.fcDomain || l.domain;
+  document.getElementById('lesson-select').value = idx;
+
+  const d = new Date(l.date);
+  const dateStr = d.toLocaleDateString('en-GB', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+
+  let conceptsHtml = '';
+  if (l.concepts && l.concepts.length > 0) {
+    conceptsHtml = '<h3>Key Terms to Know</h3><div class="concept-grid">';
+    l.concepts.forEach(c => {
+      conceptsHtml += `<div class="concept-box"><div class="cb-term">${c.term}</div><div class="cb-def">${c.def}</div></div>`;
+    });
+    conceptsHtml += '</div>';
+  }
+
+  let tipsHtml = '';
+  if (l.examTips && l.examTips.length > 0) {
+    tipsHtml = '<div class="exam-tip-box"><div class="et-label">EXAM TIPS</div><ul>';
+    l.examTips.forEach(t => { tipsHtml += `<li style="font-size:13px; margin-bottom:4px;">${t}</li>`; });
+    tipsHtml += '</ul></div>';
+  }
+
+  let checkHtml = '';
+  if (l.selfCheck && l.selfCheck.length > 0) {
+    checkHtml = '<div class="selfcheck"><div class="sc-label">Self-Check — Answer before moving on</div><ol>';
+    l.selfCheck.forEach(q => { checkHtml += `<li>${q}</li>`; });
+    checkHtml += '</ol></div>';
+  }
+
+  const domainObj = DOMAINS.find(d => d.id === l.domain);
+  const domainName = domainObj ? domainObj.title : l.domain;
+
+  document.getElementById('lesson-container').innerHTML = `
+    <div class="card">
+      <div style="margin-bottom:12px;">
+        <span class="day-pill">${dateStr}</span>
+        <span style="font-size:12px; color:var(--gray);">Domain: ${domainName}</span>
+      </div>
+      <h2 style="font-size:20px; margin-bottom:8px;">${l.title}</h2>
+      <p style="color:#444; font-size:14px; line-height:1.7; margin-bottom:16px; padding-bottom:14px; border-bottom:1px solid var(--gray-border);">${l.intro}</p>
+      <div class="lesson-body">
+        ${conceptsHtml}
+        ${l.body || ''}
+        ${tipsHtml}
+        ${checkHtml}
+        <a class="lesson-mslink" href="${l.msLink}" target="_blank">📖 ${l.msLinkLabel}</a>
+      </div>
+    </div>`;
+}
+
+function prevLesson() {
+  if (currentLessonIdx > 0) { currentLessonIdx--; loadLesson(currentLessonIdx); }
+}
+function nextLesson() {
+  if (currentLessonIdx < LESSONS.length - 1) { currentLessonIdx++; loadLesson(currentLessonIdx); }
+}
+function goToTodayLesson() {
+  const td = today();
+  let idx = LESSONS.findIndex(l => l.date === td);
+  if (idx === -1) {
+    // Find closest lesson before today
+    for (let i = LESSONS.length - 1; i >= 0; i--) {
+      if (LESSONS[i].date <= td) { idx = i; break; }
+    }
+  }
+  if (idx === -1) idx = 0;
+  currentLessonIdx = idx;
+  loadLesson(idx);
+}
+function setFcFilterFromLesson() {
+  const btn = document.querySelector(`.fc-filter button[data-filter="${currentLessonDomain}"]`);
+  if (btn) setFcFilter(currentLessonDomain, btn);
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+function init() {
+  updateCountdown();
+  computeStats();
+  renderDomainBars();
+  renderTodaysPlan();
+  renderTopics();
+  currentDeck = buildDeck('all');
+  renderCard();
+  renderSchedule();
+  loadNotes();
+  buildLessonSelect();
+  goToTodayLesson();
+}
+
+init();
+</script>
+</body>
+</html>
