@@ -130,22 +130,27 @@
   .fc-filter button.active { background: var(--blue); color: white; border-color: var(--blue); }
 
   /* SCHEDULE */
-  .schedule-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-  .sch-day { padding: 6px 4px; text-align: center; border-radius: 4px; font-size: 11px; min-height: 52px; cursor: pointer; border: 1px solid transparent; }
-  .sch-day:hover { border-color: var(--blue); }
-  .sch-day.header-day { background: none; font-weight: 700; color: var(--gray); min-height: auto; cursor: default; }
-  .sch-day.header-day:hover { border-color: transparent; }
-  .sch-day .day-num { font-weight: 700; font-size: 12px; }
-  .sch-day .day-topic { font-size: 10px; margin-top: 2px; line-height: 1.2; }
-  .sch-day.today { background: var(--blue); color: white; }
-  .sch-day.done { background: var(--green-light); border-color: var(--green); }
-  .sch-day.scheduled { background: var(--blue-light); }
-  .sch-day.review { background: var(--yellow-light); border-color: #d4a600; }
-  .sch-day.empty { background: none; border-color: transparent; cursor: default; }
-  .sch-day.past { background: #f8f8f8; color: #aaa; }
-  .sch-legend { display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap; }
+  /* SCHEDULE — phase cards */
+  .phase-card { border-left: 4px solid #ccc; border-radius: var(--radius); background: white; padding: 14px 16px; margin-bottom: 10px; box-shadow: var(--shadow); }
+  .phase-card.phase-past { opacity: 0.6; }
+  .phase-card.phase-active { box-shadow: 0 2px 14px rgba(0,120,212,0.15); }
+  .phase-card-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+  .phase-card-title { font-weight: 700; font-size: 14px; }
+  .phase-card-meta { font-size: 12px; color: var(--gray); flex: 1; }
+  .phase-card-count { font-size: 12px; font-weight: 600; color: var(--gray); white-space: nowrap; }
+  .phase-progress-bar { height: 5px; background: var(--gray-light); border-radius: 3px; margin-bottom: 12px; overflow: hidden; }
+  .phase-progress-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
+  .phase-dots { display: flex; flex-wrap: wrap; gap: 5px; }
+  .sch-dot { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid transparent; background: var(--gray-light); transition: opacity 0.15s, border-color 0.15s; flex-shrink: 0; }
+  .sch-dot:hover { opacity: 0.8; border-color: rgba(0,0,0,0.2); }
+  .dot-num { font-size: 11px; font-weight: 600; pointer-events: none; }
+  .sch-dot.dot-today { background: var(--blue); color: white; border-color: var(--blue-dark); }
+  .sch-dot.dot-done { background: var(--green-light); border-color: var(--green); }
+  .sch-dot.dot-rest { background: var(--yellow-light); border-color: #d4a600; color: #856400; }
+  .sch-dot.dot-past { background: #f0f0f0; color: #bbb; }
+  .sch-legend { display: flex; gap: 14px; margin-top: 4px; flex-wrap: wrap; }
   .legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; }
-  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+  .legend-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid transparent; }
 
   /* LINKS */
   .ms-links { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
@@ -354,15 +359,11 @@
       <span>Schedule is based on exam weightings: heavier domains get more study time. <strong>Sunday = review day</strong>. Final 2 weeks = intensive revision &amp; mock exams.</span>
     </div>
     <div id="schedule-grid"></div>
-    <div class="sch-legend">
-      <div class="legend-item"><div class="legend-dot" style="background:var(--blue);"></div> Today</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--green-light); border:1px solid var(--green);"></div> Completed</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--blue-light);"></div> Product Info Mgmt</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#e8f5e9;"></div> Inventory &amp; Assets</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#fff3e0;"></div> Supply Chain</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#f3e5f5;"></div> Warehouse &amp; Transport</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#e0f2f1;"></div> Master Planning</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--yellow-light); border:1px solid #d4a600;"></div> Review Day</div>
+    <div class="sch-legend" style="margin-top:12px;">
+      <div class="legend-item"><div class="sch-dot dot-today" style="width:14px;height:14px;border-radius:50%;background:var(--blue);border:2px solid var(--blue-dark);"></div> Today</div>
+      <div class="legend-item"><div class="sch-dot dot-done" style="width:14px;height:14px;border-radius:50%;"></div> Done (click to toggle)</div>
+      <div class="legend-item"><div class="sch-dot dot-rest" style="width:14px;height:14px;border-radius:50%;"></div> Rest / Review day</div>
+      <div class="legend-item"><div class="sch-dot dot-past" style="width:14px;height:14px;border-radius:50%;"></div> Missed</div>
     </div>
   </div>
 </div>
@@ -1102,40 +1103,75 @@ function renderSchedule() {
   const fmt = s => new Date(s).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
   document.getElementById('schedule-title').textContent = `Study Schedule — ${fmt(state.startDate)} to ${fmt(state.examDate)}`;
 
-  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  days.forEach(d => { el.innerHTML += `<div class="sch-day header-day">${d}</div>`; });
-
-  const start = new Date(state.startDate);
-  const end = new Date(state.examDate);
   const td = today();
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const accentColor = {D1:'#0078d4',D2:'#107c10',D3:'#d83b01',D4:'#7719aa',D5:'#00796b',REVIEW:'#d4a600'};
+  const bgColor = {D1:'#dce9f8',D2:'#e8f5e9',D3:'#fff3e0',D4:'#f3e5f5',D5:'#e0f2f1',REVIEW:'#fffbe6'};
 
-  // Fill empty days before start (align to correct weekday column)
-  const startDow = start.getDay();
-  for (let i = 0; i < startDow; i++) { el.innerHTML += `<div class="sch-day empty"></div>`; }
+  // Build phase groups: each contiguous block of the same domain = one phase card
+  const phases = [];
+  let currentPhase = null;
+  let d = new Date(state.startDate + 'T12:00:00');
+  const endD = new Date(state.examDate + 'T12:00:00');
 
-  let d = new Date(start);
-  while (d <= end) {
+  while (d <= endD) {
     const ds = d.toISOString().split('T')[0];
     const plan = SCHEDULE_DATA[ds];
-    const isDone = state.daysDone[ds];
-    const isToday = ds === td;
-    const isPast = ds < td;
+    const isRestDay = plan?.type === 'review'; // Sunday rest days
+    const domain = plan?.domain;
 
-    let cls = 'sch-day scheduled';
-    let style = '';
-    if (isToday) cls = 'sch-day today';
-    else if (isDone) cls = 'sch-day done';
-    else if (plan && plan.type === 'review') cls = 'sch-day review';
-    else if (plan && plan.color) style = `background:${plan.color};`;
-    else if (isPast) cls = 'sch-day past';
-
-    const label = plan ? plan.label.split(' ')[0] + (plan.label.split(' ')[1] ? ' '+plan.label.split(' ')[1].substring(0,4) : '') : '';
-    el.innerHTML += `<div class="${cls}" style="${style}" title="${plan ? plan.label : ''}" onclick="markDayDone('${ds}')">
-      <div class="day-num">${d.getDate()}</div>
-      <div class="day-topic">${label}</div>
-    </div>`;
+    // Start a new phase card when the domain changes (rest days stay with current phase)
+    if (!isRestDay && domain && (!currentPhase || domain !== currentPhase.domain)) {
+      currentPhase = { domain, label: plan.label, days: [] };
+      phases.push(currentPhase);
+    }
+    if (currentPhase) {
+      currentPhase.days.push({
+        ds, date: d.getDate(), month: d.getMonth(),
+        done: !!state.daysDone[ds], isToday: ds === td,
+        isPast: ds < td, isRestDay,
+      });
+    }
     d.setDate(d.getDate() + 1);
   }
+
+  let html = '';
+  phases.forEach(phase => {
+    const total = phase.days.length;
+    const done = phase.days.filter(x => x.done).length;
+    const pct = total ? Math.round(done / total * 100) : 0;
+    const first = phase.days[0], last = phase.days[phase.days.length - 1];
+    const dateRange = `${MONTHS[first.month]} ${first.date} – ${MONTHS[last.month]} ${last.date}`;
+    const accent = accentColor[phase.domain] || '#888';
+    const bg = bgColor[phase.domain] || '#f5f5f5';
+    const isActive = phase.days.some(x => x.isToday);
+    const isPast = phase.days.every(x => x.isPast && !x.isToday);
+
+    let dotsHtml = '';
+    phase.days.forEach(day => {
+      let cls = 'sch-dot';
+      let dotStyle = '';
+      if (day.isToday) cls += ' dot-today';
+      else if (day.done) cls += ' dot-done';
+      else if (day.isRestDay) cls += ' dot-rest';
+      else if (day.isPast) cls += ' dot-past';
+      else dotStyle = `background:${bg};`;
+      const label = `${MONTHS[day.month]} ${day.date}${day.isRestDay ? ' · Rest day' : ''}`;
+      dotsHtml += `<div class="${cls}" style="${dotStyle}" title="${label}" onclick="markDayDone('${day.ds}')"><span class="dot-num">${day.date}</span></div>`;
+    });
+
+    html += `<div class="phase-card${isActive ? ' phase-active' : ''}${isPast ? ' phase-past' : ''}" style="border-left-color:${accent};">
+      <div class="phase-card-header">
+        <div class="phase-card-title" style="color:${accent};">${phase.label}</div>
+        <div class="phase-card-meta">${dateRange} · ${total} days</div>
+        <div class="phase-card-count">${done}/${total} done</div>
+      </div>
+      <div class="phase-progress-bar"><div class="phase-progress-fill" style="width:${pct}%;background:${accent};"></div></div>
+      <div class="phase-dots">${dotsHtml}</div>
+    </div>`;
+  });
+
+  el.innerHTML = html;
 }
 
 function markDayDone(ds) {
