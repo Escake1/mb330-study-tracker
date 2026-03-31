@@ -204,6 +204,20 @@
     .stats-row { grid-template-columns: repeat(2, 1fr); }
     .ms-links { grid-template-columns: 1fr; }
   }
+
+  /* SETUP MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+  .modal-box { background: white; border-radius: var(--radius); box-shadow: 0 8px 32px rgba(0,0,0,0.25); padding: 32px 36px; max-width: 440px; width: 90%; }
+  .modal-box h2 { font-size: 18px; margin-bottom: 8px; color: var(--blue); }
+  .modal-box p { font-size: 13px; color: var(--gray); margin-bottom: 20px; line-height: 1.6; }
+  .modal-field { margin-bottom: 16px; }
+  .modal-field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; }
+  .modal-field input[type=date] { width: 100%; padding: 8px 10px; border: 1px solid var(--gray-border); border-radius: 4px; font-size: 14px; }
+  .modal-btn { background: var(--blue); color: white; border: none; border-radius: 4px; padding: 10px 24px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 4px; }
+  .modal-btn:hover { background: var(--blue-dark); }
+  .modal-error { color: var(--orange); font-size: 12px; margin-top: 8px; display: none; }
+  .settings-btn { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.35); color: white; border-radius: 4px; padding: 4px 10px; font-size: 12px; cursor: pointer; margin-top: 6px; }
+  .settings-btn:hover { background: rgba(255,255,255,0.25); }
 </style>
 </head>
 <body>
@@ -212,7 +226,8 @@
   <div>
     <div class="exam-badge">MB-330 · Dynamics 365 Supply Chain Management</div>
     <h1 style="margin-top:6px;">Study Tracker — Active Recall &amp; Spaced Repetition</h1>
-    <div class="dates">Study period: March 24, 2026 → May 25, 2026 &nbsp;·&nbsp; 62 days</div>
+    <div class="dates" id="header-dates"></div>
+    <button class="settings-btn" onclick="showSetupModal()">⚙ Edit dates</button>
   </div>
   <div style="text-align:right; font-size:13px; opacity:0.9;">
     <div id="countdown-days" style="font-size:36px; font-weight:700; line-height:1;"></div>
@@ -333,7 +348,7 @@
 <!-- ====================== SCHEDULE ====================== -->
 <div id="tab-schedule" class="tab-content">
   <div class="card">
-    <h2>Study Schedule — March 24 to May 25, 2026</h2>
+    <h2 id="schedule-title">Study Schedule</h2>
     <div class="alert alert-info" style="margin-bottom:14px;">
       <span>📅</span>
       <span>Schedule is based on exam weightings: heavier domains get more study time. <strong>Sunday = review day</strong>. Final 2 weeks = intensive revision &amp; mock exams.</span>
@@ -695,7 +710,11 @@ let state = JSON.parse(localStorage.getItem(KEY) || 'null') || {
   cardRatings: {},  // cardId -> {rating, nextReview, interval}
   notes: '',
   daysDone: {},     // dateStr -> true
+  startDate: null,  // 'YYYY-MM-DD' — user's study start date
+  examDate: null,   // 'YYYY-MM-DD' — user's exam date
 };
+// Migrate existing saves that pre-date the date fields
+if (!('startDate' in state)) { state.startDate = null; state.examDate = null; }
 
 function saveState() { localStorage.setItem(KEY, JSON.stringify(state)); }
 
@@ -718,9 +737,18 @@ function daysBetween(a, b) {
 //  COUNTDOWN
 // ============================================================
 function updateCountdown() {
-  const end = new Date('2026-05-25'); const now = new Date();
+  if (!state.examDate) { document.getElementById('countdown-days').textContent = '—'; return; }
+  const end = new Date(state.examDate); const now = new Date();
   const diff = Math.max(0, Math.ceil((end - now) / 86400000));
   document.getElementById('countdown-days').textContent = diff;
+}
+
+function updateHeaderDates() {
+  const el = document.getElementById('header-dates');
+  if (!state.startDate || !state.examDate) { el.textContent = 'Click "Edit dates" to set your timeline'; return; }
+  const days = daysBetween(state.startDate, state.examDate);
+  const fmt = s => new Date(s).toLocaleDateString('en-GB', {day:'numeric', month:'long', year:'numeric'});
+  el.textContent = `Study period: ${fmt(state.startDate)} → ${fmt(state.examDate)} · ${days} days`;
 }
 
 // ============================================================
@@ -774,27 +802,46 @@ function renderDomainBars() {
 // ============================================================
 //  TODAY'S PLAN
 // ============================================================
-const SCHEDULE_DATA = buildScheduleData();
+let SCHEDULE_DATA = {};
 
 function buildScheduleData() {
-  // March 24 – May 25, 2026
-  // Phase allocations (days counted from March 24)
-  const plan = {};
-  const phases = [
-    {start:'2026-03-24', end:'2026-04-06', label:'Product Info Mgmt', color:'#dce9f8', domain:'D1'},
-    {start:'2026-04-07', end:'2026-04-18', label:'Inventory & Assets', color:'#e8f5e9', domain:'D2'},
-    {start:'2026-04-19', end:'2026-04-28', label:'Supply Chain Procs', color:'#fff3e0', domain:'D3'},
-    {start:'2026-04-29', end:'2026-05-12', label:'Warehouse & Transport', color:'#f3e5f5', domain:'D4'},
-    {start:'2026-05-13', end:'2026-05-19', label:'Master Planning', color:'#e0f2f1', domain:'D5'},
-    {start:'2026-05-20', end:'2026-05-25', label:'Final Revision', color:undefined, domain:'REVIEW'},
+  if (!state.startDate || !state.examDate) return {};
+  const totalDays = daysBetween(state.startDate, state.examDate);
+  // Reserve last 10% (min 7, max 14) for final revision
+  const reviewDays = Math.min(14, Math.max(7, Math.floor(totalDays * 0.1)));
+  const studyDays = totalDays - reviewDays;
+
+  // Proportional domain weights (reflect exam weighting)
+  const weights = [
+    {domain:'D1', label:'Product Info Mgmt', color:'#dce9f8', parts:14},
+    {domain:'D2', label:'Inventory & Assets', color:'#e8f5e9', parts:12},
+    {domain:'D3', label:'Supply Chain Procs', color:'#fff3e0', parts:10},
+    {domain:'D4', label:'Warehouse & Transport', color:'#f3e5f5', parts:14},
+    {domain:'D5', label:'Master Planning',    color:'#e0f2f1', parts:7},
   ];
-  // Assign phases to dates
-  let d = new Date('2026-03-24');
-  const endD = new Date('2026-05-25');
+  const totalParts = weights.reduce((s, w) => s + w.parts, 0);
+
+  // Build phases with computed date ranges
+  const phases = [];
+  let cursor = state.startDate;
+  weights.forEach((w, i) => {
+    const days = (i === weights.length - 1)
+      ? studyDays - weights.slice(0, -1).reduce((s, ww, ii) => s + Math.round(ww.parts / totalParts * studyDays), 0)
+      : Math.round(w.parts / totalParts * studyDays);
+    const end = addDays(cursor, Math.max(1, days) - 1);
+    phases.push({start: cursor, end: end, label: w.label, color: w.color, domain: w.domain});
+    cursor = addDays(end, 1);
+  });
+  // Final revision phase: remainder up to exam date
+  phases.push({start: cursor, end: state.examDate, label: 'Final Revision', color: undefined, domain: 'REVIEW'});
+
+  const plan = {};
+  let d = new Date(state.startDate);
+  const endD = new Date(state.examDate);
   while (d <= endD) {
     const ds = d.toISOString().split('T')[0];
     const dow = d.getDay(); // 0=Sun
-    let phase = phases.find(p => ds >= p.start && ds <= p.end);
+    const phase = phases.find(p => ds >= p.start && ds <= p.end);
     if (phase) {
       if (dow === 0) {
         plan[ds] = {label: 'Review / Rest', color: undefined, type: 'review'};
@@ -1046,15 +1093,22 @@ function jumpToFlashcard(domainId) {
 function renderSchedule() {
   const el = document.getElementById('schedule-grid');
   el.innerHTML = '';
+  if (!state.startDate || !state.examDate) {
+    el.innerHTML = '<p style="color:var(--gray); padding:16px;">Please set your study dates using the "Edit dates" button above.</p>';
+    return;
+  }
+  const fmt = s => new Date(s).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+  document.getElementById('schedule-title').textContent = `Study Schedule — ${fmt(state.startDate)} to ${fmt(state.examDate)}`;
+
   const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   days.forEach(d => { el.innerHTML += `<div class="sch-day header-day">${d}</div>`; });
 
-  const start = new Date('2026-03-24');
-  const end = new Date('2026-05-25');
+  const start = new Date(state.startDate);
+  const end = new Date(state.examDate);
   const td = today();
 
-  // Fill empty days before March 24 (start on Tuesday)
-  const startDow = start.getDay(); // 2 = Tuesday
+  // Fill empty days before start (align to correct weekday column)
+  const startDow = start.getDay();
   for (let i = 0; i < startDow; i++) { el.innerHTML += `<div class="sch-day empty"></div>`; }
 
   let d = new Date(start);
@@ -1933,7 +1987,33 @@ function setFcFilterFromLesson() {
 // ============================================================
 //  INIT
 // ============================================================
-function init() {
+// ============================================================
+//  SETUP MODAL
+// ============================================================
+function showSetupModal() {
+  if (state.startDate) document.getElementById('input-start').value = state.startDate;
+  if (state.examDate) document.getElementById('input-exam').value = state.examDate;
+  document.getElementById('modal-error').style.display = 'none';
+  document.getElementById('setup-modal').style.display = 'flex';
+}
+
+function saveSetupDates() {
+  const start = document.getElementById('input-start').value;
+  const exam = document.getElementById('input-exam').value;
+  const errEl = document.getElementById('modal-error');
+  if (!start || !exam) { errEl.textContent = 'Please fill in both dates.'; errEl.style.display = 'block'; return; }
+  if (daysBetween(start, exam) < 7) { errEl.textContent = 'Exam date must be at least 7 days after start date.'; errEl.style.display = 'block'; return; }
+  errEl.style.display = 'none';
+  state.startDate = start;
+  state.examDate = exam;
+  saveState();
+  document.getElementById('setup-modal').style.display = 'none';
+  runApp();
+}
+
+function runApp() {
+  SCHEDULE_DATA = buildScheduleData();
+  updateHeaderDates();
   updateCountdown();
   computeStats();
   renderDomainBars();
@@ -1947,7 +2027,34 @@ function init() {
   goToTodayLesson();
 }
 
+function init() {
+  if (!state.startDate || !state.examDate) {
+    showSetupModal();
+  } else {
+    runApp();
+  }
+}
+
 init();
 </script>
+
+<!-- SETUP MODAL -->
+<div class="modal-overlay" id="setup-modal" style="display:none;">
+  <div class="modal-box">
+    <h2>Set Up Your Study Timeline</h2>
+    <p>Enter your study start date and MB-330 exam date. The schedule, countdown, and daily plan will be personalised to your timeline. You can update these anytime via the <strong>⚙ Edit dates</strong> button in the header.</p>
+    <div class="modal-field">
+      <label for="input-start">Study Start Date</label>
+      <input type="date" id="input-start">
+    </div>
+    <div class="modal-field">
+      <label for="input-exam">Exam Date</label>
+      <input type="date" id="input-exam">
+    </div>
+    <div class="modal-error" id="modal-error"></div>
+    <button class="modal-btn" onclick="saveSetupDates()">Save &amp; Start Tracking</button>
+  </div>
+</div>
+
 </body>
 </html>
