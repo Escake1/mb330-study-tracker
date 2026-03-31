@@ -210,6 +210,35 @@
     .ms-links { grid-template-columns: 1fr; }
   }
 
+  /* CARD LIBRARY */
+  .lib-toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+  .lib-search { flex: 1; min-width: 160px; padding: 7px 11px; border: 1px solid var(--gray-border); border-radius: 6px; font-size: 13px; }
+  .lib-select { padding: 7px 11px; border: 1px solid var(--gray-border); border-radius: 6px; font-size: 13px; background: white; cursor: pointer; }
+  .lib-add-btn { background: var(--blue); color: white; border: none; border-radius: 6px; padding: 7px 16px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .lib-add-btn:hover { background: var(--blue-dark); }
+  .lib-count { font-size: 12px; color: var(--gray); margin-bottom: 10px; }
+  .lib-card { background: white; border: 1px solid var(--gray-border); border-radius: var(--radius); margin-bottom: 6px; overflow: hidden; }
+  .lib-card-header { display: flex; align-items: flex-start; gap: 10px; padding: 11px 14px; cursor: pointer; user-select: none; }
+  .lib-card-header:hover { background: var(--gray-light); }
+  .lib-card-q { flex: 1; font-size: 13px; font-weight: 500; line-height: 1.4; }
+  .lib-card-right { display: flex; gap: 6px; align-items: center; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+  .badge-custom { background: #e8f0fe; color: #1a73e8; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px; }
+  .badge-builtin { background: var(--gray-light); color: var(--gray); font-size: 11px; padding: 2px 8px; border-radius: 12px; }
+  .lib-btn { background: none; border-radius: 4px; padding: 2px 8px; font-size: 11px; cursor: pointer; }
+  .lib-btn-edit { border: 1px solid var(--blue); color: var(--blue); }
+  .lib-btn-edit:hover { background: var(--blue-light); }
+  .lib-btn-del { border: 1px solid var(--orange); color: var(--orange); }
+  .lib-btn-del:hover { background: var(--orange-light); }
+  .lib-card-body { display: none; padding: 10px 14px 14px; border-top: 1px solid var(--gray-border); font-size: 13px; color: #323130; line-height: 1.6; background: #fafafa; }
+  .lib-card-body.open { display: block; }
+  .lib-card-img { max-width: 100%; max-height: 260px; border-radius: 4px; margin-top: 8px; border: 1px solid var(--gray-border); display: block; }
+  .lib-no-results { text-align: center; padding: 32px; color: var(--gray); font-size: 14px; }
+  /* card modal textarea */
+  .card-textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--gray-border); border-radius: 4px; font-size: 13px; resize: vertical; font-family: inherit; }
+  .card-select { width: 100%; padding: 8px 10px; border: 1px solid var(--gray-border); border-radius: 4px; font-size: 13px; background: white; }
+  /* image preview in flashcard */
+  #fc-image { max-width: 100%; max-height: 200px; margin: 10px auto 0; display: none; border-radius: 6px; border: 1px solid var(--gray-border); }
+
   /* SETUP MODAL */
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 1000; display: flex; align-items: center; justify-content: center; }
   .modal-box { background: white; border-radius: var(--radius); box-shadow: 0 8px 32px rgba(0,0,0,0.25); padding: 32px 36px; max-width: 440px; width: 90%; position: relative; }
@@ -247,6 +276,7 @@
   <button onclick="showTab('schedule')">Schedule</button>
   <button onclick="showTab('learn')">Learn</button>
   <button onclick="showTab('resources')">Resources</button>
+  <button onclick="showTab('library')">Card Library</button>
 </nav>
 
 <!-- ====================== DASHBOARD ====================== -->
@@ -321,6 +351,7 @@
         <button data-filter="D3" onclick="setFcFilter('D3',this)">Supply Chain</button>
         <button data-filter="D4" onclick="setFcFilter('D4',this)">Warehouse &amp; Transport</button>
         <button data-filter="D5" onclick="setFcFilter('D5',this)">Master Planning</button>
+        <button data-filter="custom" onclick="setFcFilter('custom',this)">⭐ My Cards</button>
       </div>
       <div class="fc-counter" id="fc-counter">Card <span id="fc-idx">1</span> of <span id="fc-total">0</span></div>
       <div class="fc-progress">
@@ -332,6 +363,7 @@
       <div class="flashcard" id="flashcard" onclick="revealCard()">
         <div class="fc-domain" id="fc-domain"></div>
         <div class="fc-question" id="fc-question">Loading...</div>
+        <img id="fc-image" src="" alt="">
         <div class="fc-answer" id="fc-answer"></div>
         <div class="fc-hint">👆 Click to reveal answer</div>
       </div>
@@ -347,6 +379,28 @@
         <button onclick="nextCard()">Next →</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ====================== CARD LIBRARY ====================== -->
+<div id="tab-library" class="tab-content">
+  <div class="card">
+    <h2>Card Library</h2>
+    <div class="lib-toolbar">
+      <input class="lib-search" type="text" id="lib-search" placeholder="Search questions…" oninput="renderCardLibrary()">
+      <select class="lib-select" id="lib-domain-filter" onchange="renderCardLibrary()">
+        <option value="all">All Domains</option>
+        <option value="D1">D1 — Product Info Mgmt</option>
+        <option value="D2">D2 — Inventory &amp; Assets</option>
+        <option value="D3">D3 — Supply Chain Procs</option>
+        <option value="D4">D4 — Warehouse &amp; Transport</option>
+        <option value="D5">D5 — Master Planning</option>
+        <option value="custom">My Custom Cards</option>
+      </select>
+      <button class="lib-add-btn" onclick="showCardModal()">+ Add Card</button>
+    </div>
+    <div class="lib-count" id="lib-count"></div>
+    <div id="lib-list"></div>
   </div>
 </div>
 
@@ -713,11 +767,16 @@ let state = JSON.parse(localStorage.getItem(KEY) || 'null') || {
   daysDone: {},     // dateStr -> true
   startDate: null,  // 'YYYY-MM-DD' — user's study start date
   examDate: null,   // 'YYYY-MM-DD' — user's exam date
+  customCards: [],  // user-created flashcards
 };
-// Migrate existing saves that pre-date the date fields
+// Migrate existing saves that pre-date these fields
 if (!('startDate' in state)) { state.startDate = null; state.examDate = null; }
+if (!state.customCards) state.customCards = [];
+state.customCards.forEach(c => { c._custom = true; });
 
 function saveState() { localStorage.setItem(KEY, JSON.stringify(state)); }
+
+function getAllCards() { return [...FLASHCARDS, ...state.customCards]; }
 
 // ============================================================
 //  UTILITIES
@@ -764,7 +823,7 @@ function computeStats() {
   const pct = total ? Math.round(completed / total * 100) : 0;
   let due = 0;
   const td = today();
-  FLASHCARDS.forEach(fc => {
+  getAllCards().forEach(fc => {
     const r = state.cardRatings[fc.id];
     if (!r || r.nextReview <= td) due++;
   });
@@ -859,7 +918,7 @@ function renderTodaysPlan() {
   const el = document.getElementById('todays-plan');
   const td = today();
   const plan = SCHEDULE_DATA[td];
-  const dueCards = FLASHCARDS.filter(fc => {
+  const dueCards = getAllCards().filter(fc => {
     const r = state.cardRatings[fc.id];
     return !r || r.nextReview <= td;
   });
@@ -917,7 +976,7 @@ function renderTopics() {
         const k = topicKey(d.id, gi, ti);
         const checked = state.checked[k] ? 'checked' : '';
         // Find related flashcard
-        const relatedFc = FLASHCARDS.find(fc => fc.domain === d.id);
+        const relatedFc = getAllCards().find(fc => fc.domain === d.id);
         const rating = state.cardRatings[relatedFc?.id];
         let rs = 'rs-new'; let rsLabel = 'New';
         if (rating) { rs = 'rs-'+rating.rating; rsLabel = rating.rating.charAt(0).toUpperCase()+rating.rating.slice(1); }
@@ -973,11 +1032,12 @@ let fcFilter = 'all';
 
 function buildDeck(filter) {
   const td = today();
-  if (filter === 'all') return [...FLASHCARDS];
-  if (filter === 'due') return FLASHCARDS.filter(fc => { const r = state.cardRatings[fc.id]; return !r || r.nextReview <= td; });
-  if (filter === 'again') return FLASHCARDS.filter(fc => { const r = state.cardRatings[fc.id]; return r && r.rating === 'again'; });
-  // domain filter
-  return FLASHCARDS.filter(fc => fc.domain === filter);
+  const all = getAllCards();
+  if (filter === 'all') return [...all];
+  if (filter === 'due') return all.filter(fc => { const r = state.cardRatings[fc.id]; return !r || r.nextReview <= td; });
+  if (filter === 'again') return all.filter(fc => { const r = state.cardRatings[fc.id]; return r && r.rating === 'again'; });
+  if (filter === 'custom') return state.customCards;
+  return all.filter(fc => fc.domain === filter);
 }
 
 function setFcFilter(f, btn) {
@@ -990,12 +1050,14 @@ function setFcFilter(f, btn) {
 }
 
 function renderCard() {
+  const imgEl = document.getElementById('fc-image');
   if (currentDeck.length === 0) {
     document.getElementById('fc-question').textContent = 'No cards match this filter.';
     document.getElementById('fc-domain').textContent = '';
     document.getElementById('fc-answer').innerHTML = '';
     document.getElementById('fc-counter').innerHTML = 'No cards';
     document.getElementById('rating-row').style.display = 'none';
+    imgEl.style.display = 'none';
     return;
   }
   const fc = currentDeck[currentIdx];
@@ -1005,6 +1067,9 @@ function renderCard() {
   document.getElementById('fc-answer').innerHTML = fc.a;
   document.getElementById('fc-idx').textContent = currentIdx + 1;
   document.getElementById('fc-total').textContent = currentDeck.length;
+  // Show image if card has one
+  if (fc.img) { imgEl.src = fc.img; imgEl.style.display = 'block'; }
+  else { imgEl.src = ''; imgEl.style.display = 'none'; }
   const card = document.getElementById('flashcard');
   card.classList.remove('revealed');
   document.getElementById('rating-row').style.display = 'none';
@@ -1048,7 +1113,7 @@ function rateCard(rating) {
 
 function updateFcProgressDisplay() {
   const counts = {again:0, hard:0, good:0, easy:0};
-  FLASHCARDS.forEach(fc => {
+  getAllCards().forEach(fc => {
     const r = state.cardRatings[fc.id];
     if (r) counts[r.rating] = (counts[r.rating] || 0) + 1;
   });
@@ -2026,6 +2091,142 @@ function setFcFilterFromLesson() {
 //  INIT
 // ============================================================
 // ============================================================
+//  CARD LIBRARY
+// ============================================================
+function renderCardLibrary() {
+  const search = (document.getElementById('lib-search')?.value || '').toLowerCase();
+  const domainFilter = document.getElementById('lib-domain-filter')?.value || 'all';
+  const all = getAllCards();
+  const filtered = all.filter(fc => {
+    const matchDomain = domainFilter === 'all' ? true
+      : domainFilter === 'custom' ? !!fc._custom
+      : fc.domain === domainFilter;
+    const matchSearch = !search || fc.q.toLowerCase().includes(search) || (fc.a || '').toLowerCase().includes(search);
+    return matchDomain && matchSearch;
+  });
+  document.getElementById('lib-count').textContent = `${filtered.length} of ${all.length} cards`;
+  const el = document.getElementById('lib-list');
+  if (!el) return;
+  if (filtered.length === 0) { el.innerHTML = '<div class="lib-no-results">No cards match your search.</div>'; return; }
+  const domainNames = {D1:'D1',D2:'D2',D3:'D3',D4:'D4',D5:'D5'};
+  el.innerHTML = filtered.map(fc => {
+    const isCustom = !!fc._custom;
+    const badge = isCustom ? '<span class="badge-custom">Custom</span>' : '<span class="badge-builtin">Built-in</span>';
+    const domainBadge = `<span class="domain-badge badge-blue" style="font-size:10px;">${fc.domain}</span>`;
+    const actions = isCustom ? `<button class="lib-btn lib-btn-edit" onclick="event.stopPropagation();showCardModal('${fc.id}')">Edit</button><button class="lib-btn lib-btn-del" onclick="event.stopPropagation();deleteCustomCard('${fc.id}')">Delete</button>` : '';
+    const imgThumb = fc.img ? `<img src="${fc.img}" class="lib-card-img" alt="">` : '';
+    return `<div class="lib-card">
+      <div class="lib-card-header" onclick="toggleLibCard('lc-${fc.id}')">
+        <div class="lib-card-q">${fc.q}</div>
+        <div class="lib-card-right">${domainBadge}${badge}${actions}</div>
+      </div>
+      <div class="lib-card-body" id="lc-${fc.id}">
+        <div>${fc.a}</div>${imgThumb}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleLibCard(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('open');
+}
+
+let _cardImageData = null;
+
+function showCardModal(editId) {
+  _cardImageData = null;
+  document.getElementById('card-modal-error').style.display = 'none';
+  document.getElementById('card-image-preview').innerHTML = '';
+  document.getElementById('card-image-clear').style.display = 'none';
+  document.getElementById('card-image-input').value = '';
+  if (editId) {
+    const fc = state.customCards.find(c => c.id === editId);
+    if (!fc) return;
+    document.getElementById('card-modal-title').textContent = 'Edit Card';
+    document.getElementById('edit-card-id').value = editId;
+    document.getElementById('card-domain').value = fc.domain;
+    document.getElementById('card-question').value = fc.q;
+    document.getElementById('card-answer').value = fc.a;
+    if (fc.img) {
+      _cardImageData = fc.img;
+      document.getElementById('card-image-preview').innerHTML = `<img src="${fc.img}" style="max-width:100%;max-height:120px;border-radius:4px;margin-top:4px;">`;
+      document.getElementById('card-image-clear').style.display = 'inline-block';
+    }
+  } else {
+    document.getElementById('card-modal-title').textContent = 'Add Custom Card';
+    document.getElementById('edit-card-id').value = '';
+    document.getElementById('card-domain').value = 'D1';
+    document.getElementById('card-question').value = '';
+    document.getElementById('card-answer').value = '';
+  }
+  document.getElementById('card-modal').style.display = 'flex';
+}
+
+function closeCardModal() {
+  document.getElementById('card-modal').style.display = 'none';
+  _cardImageData = null;
+}
+
+function previewCardImage(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (file.size > 1024 * 1024) {
+    document.getElementById('card-modal-error').textContent = 'Image must be under 1 MB.';
+    document.getElementById('card-modal-error').style.display = 'block';
+    event.target.value = '';
+    return;
+  }
+  document.getElementById('card-modal-error').style.display = 'none';
+  const reader = new FileReader();
+  reader.onload = e => {
+    _cardImageData = e.target.result;
+    document.getElementById('card-image-preview').innerHTML = `<img src="${_cardImageData}" style="max-width:100%;max-height:120px;border-radius:4px;margin-top:4px;">`;
+    document.getElementById('card-image-clear').style.display = 'inline-block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearCardImage() {
+  _cardImageData = null;
+  document.getElementById('card-image-preview').innerHTML = '';
+  document.getElementById('card-image-clear').style.display = 'none';
+  document.getElementById('card-image-input').value = '';
+}
+
+function saveCustomCard() {
+  const q = document.getElementById('card-question').value.trim();
+  const a = document.getElementById('card-answer').value.trim();
+  const domain = document.getElementById('card-domain').value;
+  const editId = document.getElementById('edit-card-id').value;
+  const errEl = document.getElementById('card-modal-error');
+  if (!q || !a) { errEl.textContent = 'Question and answer are required.'; errEl.style.display = 'block'; return; }
+  errEl.style.display = 'none';
+  if (editId) {
+    const idx = state.customCards.findIndex(c => c.id === editId);
+    if (idx !== -1) state.customCards[idx] = { ...state.customCards[idx], domain, q, a, img: _cardImageData || null };
+  } else {
+    state.customCards.push({ id: 'custom_' + Date.now(), domain, q, a, img: _cardImageData || null, _custom: true });
+  }
+  saveState();
+  closeCardModal();
+  renderCardLibrary();
+  currentDeck = buildDeck(fcFilter);
+  renderCard();
+  computeStats();
+}
+
+function deleteCustomCard(id) {
+  if (!confirm('Delete this card?')) return;
+  state.customCards = state.customCards.filter(c => c.id !== id);
+  saveState();
+  renderCardLibrary();
+  currentDeck = buildDeck(fcFilter);
+  renderCard();
+  computeStats();
+}
+
+// ============================================================
 //  SETUP MODAL
 // ============================================================
 function showSetupModal() {
@@ -2064,6 +2265,7 @@ function runApp() {
   loadNotes();
   buildLessonSelect();
   goToTodayLesson();
+  renderCardLibrary();
 }
 
 function init() {
@@ -2093,6 +2295,42 @@ init();
     </div>
     <div class="modal-error" id="modal-error"></div>
     <button class="modal-btn" onclick="saveSetupDates()">Save &amp; Start Tracking</button>
+  </div>
+</div>
+
+<!-- CARD MODAL -->
+<div class="modal-overlay" id="card-modal" style="display:none;">
+  <div class="modal-box" style="max-width:520px;">
+    <button onclick="closeCardModal()" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:#666;" title="Close">✕</button>
+    <h2 id="card-modal-title">Add Custom Card</h2>
+    <p>Custom cards appear alongside built-in cards in all flashcard sessions.</p>
+    <input type="hidden" id="edit-card-id">
+    <div class="modal-field">
+      <label for="card-domain">Domain</label>
+      <select id="card-domain" class="card-select">
+        <option value="D1">D1 — Product Info Mgmt</option>
+        <option value="D2">D2 — Inventory &amp; Assets</option>
+        <option value="D3">D3 — Supply Chain Procs</option>
+        <option value="D4">D4 — Warehouse &amp; Transport</option>
+        <option value="D5">D5 — Master Planning</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <label for="card-question">Question</label>
+      <textarea id="card-question" class="card-textarea" rows="3" placeholder="What is…?"></textarea>
+    </div>
+    <div class="modal-field">
+      <label for="card-answer">Answer</label>
+      <textarea id="card-answer" class="card-textarea" rows="4" placeholder="The answer is…"></textarea>
+    </div>
+    <div class="modal-field">
+      <label>Image <span style="font-weight:400;color:var(--gray);">(optional, max 1 MB)</span></label>
+      <input type="file" id="card-image-input" accept="image/*" onchange="previewCardImage(event)" style="font-size:13px;">
+      <div id="card-image-preview"></div>
+      <button id="card-image-clear" onclick="clearCardImage()" style="display:none;margin-top:6px;background:none;border:1px solid var(--gray-border);border-radius:4px;padding:3px 10px;font-size:12px;cursor:pointer;">✕ Remove image</button>
+    </div>
+    <div class="modal-error" id="card-modal-error"></div>
+    <button class="modal-btn" onclick="saveCustomCard()">Save Card</button>
   </div>
 </div>
 
